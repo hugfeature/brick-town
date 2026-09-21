@@ -2,94 +2,309 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#eef3f7">
-<title>积木小镇工程师</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#dff3ff">
+<title>积木小镇大冒险</title>
 <style>
-:root{--bg:#eef3f7;--panel:#fff;--text:#1f2937;--muted:#64748b;--red:#e45446;--yellow:#f2c744;--blue:#4d8ec6;--green:#65a75c}
+:root{
+  --sky:#dff3ff;--grass:#9bc66d;--road:#71808a;--ink:#24313b;--card:#fffdf8;
+  --red:#df5143;--yellow:#f4c542;--blue:#4f8fc9;--green:#62a45d;--orange:#e98a38;--purple:#8a69b7;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);touch-action:manipulation}
-.wrap{max-width:760px;margin:0 auto;padding:14px 14px 28px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:14px 16px}
-h1{font-size:20px;margin:0 0 4px}.sub{font-size:13px;color:var(--muted)}.score{font-size:22px;font-weight:800;white-space:nowrap}
-.game{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.card{background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:12px}.card h2{text-align:center;font-size:15px;margin:0 0 10px}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.cell{aspect-ratio:1;border:2px solid #cbd5e1;border-radius:10px;background:#f8fafc;position:relative;min-width:0}
-button.cell{width:100%;padding:0}
-.cell.brick{border-color:rgba(0,0,0,.2);box-shadow:inset 0 -7px rgba(0,0,0,.12),inset 0 4px rgba(255,255,255,.22)}
-.cell.brick:before{content:"";position:absolute;left:50%;top:9%;transform:translateX(-50%);width:38%;height:18%;min-height:7px;border-radius:50%;background:rgba(255,255,255,.28);border:1px solid rgba(0,0,0,.13)}
-.c1{background:var(--red)!important}.c2{background:var(--yellow)!important}.c3{background:var(--blue)!important}.c4{background:var(--green)!important}
-.palette{margin-top:14px;background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:13px}
-.palette-title{font-size:14px;font-weight:700;margin-bottom:12px}
-.picks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.pick{height:58px;border:3px solid transparent;border-radius:11px;position:relative;box-shadow:inset 0 -8px rgba(0,0,0,.12),inset 0 4px rgba(255,255,255,.22)}
-.pick:before,.pick:after{content:"";position:absolute;top:-7px;width:20px;height:10px;border-radius:50%;background:rgba(255,255,255,.33);border:1px solid rgba(0,0,0,.13)}
-.pick:before{left:18%}.pick:after{right:18%}.pick.sel{outline:4px solid #111827;outline-offset:2px}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.action{min-height:52px;border:0;border-radius:14px;font-size:16px;font-weight:800}.check{background:#111827;color:#fff}.clear{background:#fff;border:2px solid #cbd5e1}
-.msg{margin-top:12px;background:#fff;border:2px solid #d8e0e7;border-radius:16px;padding:12px;text-align:center;font-weight:700;min-height:50px}
-.progress{margin-top:12px;background:#fff;border:2px solid #d8e0e7;border-radius:16px;padding:12px}
-.town{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;font-size:30px;text-align:center}.locked{filter:grayscale(1);opacity:.22}
-.tip{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
-@media(max-width:430px){.wrap{padding:10px 10px 22px}.game{gap:8px}.card{padding:8px}.board{gap:5px}h1{font-size:18px}.score{font-size:19px}}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(#dff3ff 0 68%,#c7e6ab 68%)}
+button{font:inherit;touch-action:manipulation}
+.app{max-width:780px;margin:0 auto;padding:10px 10px 28px}
+.hud{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;background:rgba(255,255,255,.94);border:2px solid #cbd9e2;border-radius:18px;padding:10px 12px;box-shadow:0 4px 0 rgba(34,48,58,.1)}
+.title{font-weight:900;font-size:19px}.mini{font-size:12px;color:#687783;margin-top:2px}
+.pill{background:#f7f3e7;border:2px solid #e0d9c6;border-radius:999px;padding:7px 10px;font-weight:900;white-space:nowrap}
+.missionCard{margin-top:10px;background:rgba(255,253,248,.96);border:2px solid #d9d3c3;border-radius:20px;padding:12px;box-shadow:0 5px 0 rgba(67,61,45,.1)}
+.missionTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.missionName{font-size:18px;font-weight:900}.missionHint{font-size:12px;color:#6a746f;margin-top:3px}
+.stepDots{display:flex;gap:5px}.dot{width:11px;height:11px;border-radius:50%;background:#d6d9db;border:1px solid #b7bdc0}.dot.done{background:#68a85e}
+.world{position:relative;margin-top:10px;min-height:330px;border:2px solid #9eb5c2;border-radius:22px;overflow:hidden;background:linear-gradient(#aee3ff 0 62%,#9fcf72 62%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.25)}
+.cloud{position:absolute;color:white;font-size:44px;opacity:.9;filter:drop-shadow(0 2px 0 rgba(0,0,0,.06))}
+.c1{left:8%;top:13px}.c2{right:8%;top:35px}
+.sun{position:absolute;right:18px;top:14px;font-size:38px}
+.skyline{position:absolute;left:0;right:0;bottom:105px;height:70px;display:flex;align-items:flex-end;gap:7px;padding:0 12px;opacity:.55}
+.bld{flex:1;background:#d7d8d1;border:2px solid rgba(0,0,0,.12);border-bottom:0;border-radius:5px 5px 0 0;position:relative}
+.bld:after{content:"";position:absolute;inset:8px;background:repeating-linear-gradient(90deg,#97c3d0 0 8px,transparent 8px 15px),repeating-linear-gradient(0deg,#97c3d0 0 7px,transparent 7px 14px)}
+.road{position:absolute;left:0;right:0;bottom:0;height:108px;background:#6f7c84;border-top:7px solid #d6d7d0}
+.road:after{content:"";position:absolute;left:0;right:0;top:48px;height:5px;background:repeating-linear-gradient(90deg,#f8e083 0 34px,transparent 34px 58px)}
+.stage{position:absolute;left:4%;right:4%;bottom:70px;height:190px;display:flex;align-items:flex-end;justify-content:center}
+.buildArea{position:relative;width:min(92%,520px);height:180px}
+.slot{position:absolute;border:3px dashed rgba(42,58,68,.34);border-radius:12px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;color:rgba(42,58,68,.45);font-weight:900;font-size:11px;transition:.18s}
+.slot.active{border-color:#25323c;background:rgba(255,255,255,.52);transform:scale(1.03)}
+.slot.filled{border-color:transparent;background:transparent}
+.part{position:relative;border:2px solid rgba(0,0,0,.22);border-radius:8px;box-shadow:inset 0 -7px 0 rgba(0,0,0,.12),inset 0 4px 0 rgba(255,255,255,.22),0 3px 0 rgba(0,0,0,.12)}
+.part .studs{position:absolute;left:5px;right:5px;top:-7px;height:10px;display:flex;justify-content:space-around}
+.stud{width:14px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.18)}
+.red{background:var(--red)}.yellow{background:var(--yellow)}.blue{background:var(--blue)}.green{background:var(--green)}.orange{background:var(--orange)}.purple{background:var(--purple)}
+.wheel{border-radius:50%;background:#30383e;border:4px solid #1e2428;box-shadow:inset 0 0 0 5px #838d94}
+.window{background:#9ad8ec;border-color:#5f8ca0;box-shadow:inset 0 0 0 4px rgba(255,255,255,.28),0 3px 0 rgba(0,0,0,.1)}
+.ladder{background:repeating-linear-gradient(90deg,#e8e9e5 0 8px,#9a9f9d 8px 12px);border-color:#7c8380}
+.partTray{margin-top:10px;background:rgba(255,255,255,.96);border:2px solid #d0d7db;border-radius:20px;padding:12px}
+.trayHeader{display:flex;justify-content:space-between;gap:10px;align-items:center}.trayTitle{font-weight:900}.trayHint{font-size:12px;color:#6c7880}
+.parts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}
+.pick{min-height:64px;border:3px solid transparent;border-radius:14px;background:#edf2f4;display:flex;align-items:center;justify-content:center;padding:8px}
+.pick.selected{border-color:#26333c;background:#fff5c8;transform:translateY(-2px)}
+.pick.used{opacity:.25;filter:grayscale(.7)}
+.pick .part{max-width:100%}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.ctrl{min-height:50px;border-radius:15px;border:0;font-weight:900;font-size:15px}.ghost{background:#fff;border:2px solid #cbd5da}.primary{background:#25333d;color:#fff}
+.message{margin-top:9px;background:#fff9d9;border:2px solid #e5d486;border-radius:15px;padding:10px 12px;text-align:center;font-weight:800;min-height:45px}
+.album{margin-top:10px;background:rgba(255,255,255,.94);border:2px solid #d0d7db;border-radius:18px;padding:10px}
+.albumTitle{display:flex;justify-content:space-between;font-weight:900}.stickers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}.sticker{font-size:30px;text-align:center;filter:grayscale(1);opacity:.2}.sticker.open{filter:none;opacity:1;animation:pop .35s ease}
+.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}.starfx{position:absolute;font-size:24px;animation:fly 900ms ease-out forwards}
+.testPanel{display:none;margin-top:10px;background:#fff;border:2px solid #cfd8dd;border-radius:18px;padding:10px;text-align:center}.testPanel.show{display:block}.testBtn{min-height:50px;width:100%;border:0;border-radius:14px;background:#f0b941;font-size:17px;font-weight:900}
+.vehicleRun{animation:drive 1.7s ease-in-out}
+.shake{animation:shake .28s linear}
+@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes fly{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),-120px) scale(1.5);opacity:0}}
+@keyframes drive{0%{transform:translateX(-40px)}45%{transform:translateX(60px)}70%{transform:translateX(35px)}100%{transform:translateX(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@media(max-width:430px){
+  .app{padding:8px 8px 24px}.title{font-size:17px}.pill{padding:6px 8px;font-size:13px}
+  .world{min-height:310px}.stage{bottom:67px;height:170px}.buildArea{height:165px}.parts{gap:6px}.pick{min-height:59px;padding:6px}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div><h1>🧱 积木小镇工程师</h1><div class="sub">照着左边蓝图，把右边搭成一样</div></div>
-    <div class="score" id="score">⭐ 0</div>
+<div class="app">
+  <div class="hud">
+    <div><div class="title">🧱 积木小镇大冒险</div><div class="mini">完成任务，把小镇一点点建起来</div></div>
+    <div class="pill" id="stars">⭐ 0</div>
+    <div class="pill" id="coins">🪙 0</div>
   </div>
-  <div class="game">
-    <div class="card"><h2>👀 蓝图</h2><div class="board" id="target"></div></div>
-    <div class="card"><h2>🛠️ 我来搭</h2><div class="board" id="work"></div></div>
-  </div>
-  <div class="palette">
-    <div class="palette-title">先选一种积木</div>
-    <div class="picks">
-      <button class="pick c1 sel" data-color="1" aria-label="红色积木"></button>
-      <button class="pick c2" data-color="2" aria-label="黄色积木"></button>
-      <button class="pick c3" data-color="3" aria-label="蓝色积木"></button>
-      <button class="pick c4" data-color="4" aria-label="绿色积木"></button>
+
+  <section class="missionCard">
+    <div class="missionTop">
+      <div><div class="missionName" id="missionName">消防车出动</div><div class="missionHint" id="missionHint">按蓝图把积木一块块装上去</div></div>
+      <div class="stepDots" id="stepDots"></div>
     </div>
-    <div class="tip">选颜色 → 点右边格子。再次点同色积木可以拿掉。</div>
+  </section>
+
+  <section class="world" id="world">
+    <div class="cloud c1">☁</div><div class="cloud c2">☁</div><div class="sun">☀️</div>
+    <div class="skyline">
+      <div class="bld" style="height:42px"></div><div class="bld" style="height:60px"></div><div class="bld" style="height:50px"></div><div class="bld" style="height:68px"></div><div class="bld" style="height:45px"></div>
+    </div>
+    <div class="stage"><div class="buildArea" id="buildArea"></div></div>
+    <div class="road"></div>
+    <div class="fx" id="fx"></div>
+  </section>
+
+  <section class="partTray">
+    <div class="trayHeader"><div class="trayTitle">零件箱</div><div class="trayHint" id="trayHint">先点一个零件，再点闪亮的位置</div></div>
+    <div class="parts" id="parts"></div>
+  </section>
+
+  <div class="controls">
+    <button class="ctrl ghost" id="undoBtn">↩️ 拆掉上一块</button>
+    <button class="ctrl primary" id="hintBtn">💡 提示我</button>
   </div>
-  <div class="actions"><button class="action check" id="check">✅ 完成啦</button><button class="action clear" id="clear">🧹 重新搭</button></div>
-  <div class="msg" id="msg">开始搭吧 👷</div>
-  <div class="progress"><strong>🏘️ 小镇进度</strong><div class="town">
-    <div class="locked">🏠</div><div class="locked">🚒</div><div class="locked">🚗</div><div class="locked">🦖</div><div class="locked">🎁</div>
-  </div></div>
+
+  <div class="message" id="message">选一个零件开始搭吧！</div>
+
+  <section class="testPanel" id="testPanel">
+    <div style="font-weight:900;margin-bottom:8px" id="testTitle">搭好了！现在试试它</div>
+    <button class="testBtn" id="testBtn">🚒 出动！</button>
+  </section>
+
+  <section class="album">
+    <div class="albumTitle"><span>🏆 我的积木收藏</span><span id="progress">0 / 5</span></div>
+    <div class="stickers">
+      <div class="sticker">🚒</div><div class="sticker">🚜</div><div class="sticker">🚀</div><div class="sticker">🤖</div><div class="sticker">🎁</div>
+    </div>
+  </section>
 </div>
+
 <script>
 (function(){
-  const levels=[
-    [0,2,0,1,1,1,3,0,3],
-    [4,0,4,2,2,2,1,3,1],
-    [0,3,0,4,4,4,2,1,2],
-    [2,2,0,1,3,1,4,4,4],
-    [0,4,0,2,2,2,1,3,1]
-  ];
-  let level=0,stars=0,selected=1,work=new Array(9).fill(0);
-  const targetEl=document.getElementById('target'),workEl=document.getElementById('work'),msg=document.getElementById('msg'),score=document.getElementById('score');
-  const picks=[...document.querySelectorAll('.pick')],town=[...document.querySelectorAll('.town>div')];
-  function cls(v){return v?'cell brick c'+v:'cell'}
-  function renderTarget(){targetEl.innerHTML='';levels[level].forEach(v=>{const d=document.createElement('div');d.className=cls(v);targetEl.appendChild(d)})}
-  function renderWork(){workEl.innerHTML='';work.forEach((v,i)=>{const b=document.createElement('button');b.className=cls(v);b.setAttribute('aria-label','第'+(i+1)+'格');b.onclick=()=>{work[i]=(work[i]===selected?0:selected);renderWork()};workEl.appendChild(b)})}
-  function resetBoard(){work=new Array(9).fill(0);renderTarget();renderWork()}
-  picks.forEach(p=>p.onclick=()=>{selected=Number(p.dataset.color);picks.forEach(x=>x.classList.remove('sel'));p.classList.add('sel');msg.textContent='选好了，开始搭。'});
-  document.getElementById('clear').onclick=()=>{work=new Array(9).fill(0);renderWork();msg.textContent='清空啦，再来一次。'};
-  document.getElementById('check').onclick=()=>{
-    const target=levels[level],ok=work.every((v,i)=>v===target[i]);
-    if(ok){
-      stars++;score.textContent='⭐ '+stars;if(stars<=town.length)town[stars-1].classList.remove('locked');
-      msg.textContent=stars>=5?'🎁 小镇完成！神秘礼物解锁啦！':'🎉 搭对啦！获得一颗星星！';
-      level=(level+1)%levels.length;setTimeout(()=>{resetBoard();msg.textContent='新的蓝图来了！'},700)
-    }else{
-      const correct=work.filter((v,i)=>v===target[i]).length;msg.textContent='还差一点：有 '+correct+' 个位置已经正确。'
+  const missions=[
+    {
+      name:'消防车出动',hint:'先装车身，再装驾驶室、轮子和云梯',test:'🚒 出动！',reward:'🚒',
+      slots:[
+        {id:'body',x:22,y:88,w:56,h:38,type:'body',color:'red',label:'车身'},
+        {id:'cab',x:60,y:58,w:26,h:34,type:'cab',color:'red',label:'驾驶室'},
+        {id:'window',x:65,y:63,w:14,h:15,type:'window',color:'window',label:'车窗'},
+        {id:'wheel1',x:29,y:119,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
+        {id:'wheel2',x:66,y:119,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
+        {id:'ladder',x:24,y:48,w:47,h:16,type:'ladder',color:'ladder',label:'云梯'}
+      ],
+      tray:[
+        {type:'body',color:'red',w:70,h:34},{type:'cab',color:'red',w:45,h:42},{type:'wheel',color:'wheel',w:38,h:38},
+        {type:'ladder',color:'ladder',w:72,h:20},{type:'window',color:'window',w:38,h:31},{type:'body',color:'blue',w:62,h:30},
+        {type:'cab',color:'yellow',w:42,h:38},{type:'wheel',color:'wheel',w:38,h:38}
+      ]
+    },
+    {
+      name:'挖掘机修路',hint:'把黄色积木拼成能工作的挖掘机',test:'🚜 开工挖土！',reward:'🚜',
+      slots:[
+        {id:'base',x:20,y:103,w:60,h:28,type:'body',color:'yellow',label:'底座'},
+        {id:'cab',x:53,y:69,w:28,h:37,type:'cab',color:'yellow',label:'驾驶室'},
+        {id:'window',x:59,y:75,w:15,h:16,type:'window',color:'window',label:'车窗'},
+        {id:'wheel1',x:27,y:123,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
+        {id:'wheel2',x:61,y:123,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
+        {id:'arm',x:18,y:54,w:42,h:15,type:'arm',color:'orange',label:'机械臂'},
+        {id:'bucket',x:9,y:68,w:22,h:24,type:'bucket',color:'orange',label:'铲斗'}
+      ],
+      tray:[
+        {type:'body',color:'yellow',w:68,h:30},{type:'cab',color:'yellow',w:44,h:44},{type:'wheel',color:'wheel',w:38,h:38},
+        {type:'arm',color:'orange',w:68,h:18},{type:'bucket',color:'orange',w:38,h:34},{type:'window',color:'window',w:38,h:31},
+        {type:'body',color:'red',w:60,h:28},{type:'arm',color:'green',w:62,h:18}
+      ]
+    },
+    {
+      name:'火箭发射基地',hint:'从下往上拼，别忘了两个推进器',test:'🚀 3、2、1，发射！',reward:'🚀',
+      slots:[
+        {id:'core',x:40,y:57,w:22,h:67,type:'rocket',color:'blue',label:'火箭'},
+        {id:'nose',x:40,y:33,w:22,h:26,type:'nose',color:'red',label:'火箭头'},
+        {id:'window',x:44,y:70,w:14,h:14,type:'window',color:'window',label:'舷窗'},
+        {id:'booster1',x:29,y:92,w:15,h:38,type:'booster',color:'yellow',label:'推进器'},
+        {id:'booster2',x:58,y:92,w:15,h:38,type:'booster',color:'yellow',label:'推进器'},
+        {id:'flame1',x:30,y:127,w:13,h:19,type:'flame',color:'orange',label:'火焰'},
+        {id:'flame2',x:59,y:127,w:13,h:19,type:'flame',color:'orange',label:'火焰'}
+      ],
+      tray:[
+        {type:'rocket',color:'blue',w:35,h:65},{type:'nose',color:'red',w:36,h:35},{type:'booster',color:'yellow',w:28,h:54},
+        {type:'window',color:'window',w:34,h:34},{type:'flame',color:'orange',w:26,h:38},{type:'rocket',color:'green',w:35,h:62},
+        {type:'nose',color:'purple',w:34,h:34},{type:'booster',color:'red',w:28,h:50}
+      ]
+    },
+    {
+      name:'机器人朋友',hint:'给机器人装身体、脑袋、手和脚',test:'🤖 机器人跳舞！',reward:'🤖',
+      slots:[
+        {id:'body',x:38,y:71,w:28,h:42,type:'robotbody',color:'green',label:'身体'},
+        {id:'head',x:40,y:43,w:24,h:27,type:'robothead',color:'yellow',label:'脑袋'},
+        {id:'eye',x:45,y:50,w:14,h:9,type:'eye',color:'window',label:'眼睛'},
+        {id:'arm1',x:24,y:76,w:17,h:38,type:'armblock',color:'blue',label:'手臂'},
+        {id:'arm2',x:63,y:76,w:17,h:38,type:'armblock',color:'blue',label:'手臂'},
+        {id:'leg1',x:39,y:111,w:12,h:36,type:'leg',color:'purple',label:'腿'},
+        {id:'leg2',x:54,y:111,w:12,h:36,type:'leg',color:'purple',label:'腿'}
+      ],
+      tray:[
+        {type:'robotbody',color:'green',w:45,h:48},{type:'robothead',color:'yellow',w:42,h:38},{type:'armblock',color:'blue',w:27,h:54},
+        {type:'leg',color:'purple',w:24,h:50},{type:'eye',color:'window',w:38,h:24},{type:'robotbody',color:'red',w:44,h:47},
+        {type:'robothead',color:'orange',w:40,h:36},{type:'leg',color:'green',w:24,h:48}
+      ]
+    },
+    {
+      name:'神秘礼物工坊',hint:'最后一关！把礼物盒完整拼起来',test:'🎁 打开礼物！',reward:'🎁',
+      slots:[
+        {id:'box',x:31,y:72,w:42,h:54,type:'giftbox',color:'red',label:'礼物盒'},
+        {id:'lid',x:27,y:61,w:50,h:16,type:'giftlid',color:'yellow',label:'盒盖'},
+        {id:'ribbon1',x:49,y:61,w:8,h:65,type:'ribbon',color:'yellow',label:'丝带'},
+        {id:'bow1',x:37,y:43,w:18,h:20,type:'bow',color:'yellow',label:'蝴蝶结'},
+        {id:'bow2',x:54,y:43,w:18,h:20,type:'bow',color:'yellow',label:'蝴蝶结'}
+      ],
+      tray:[
+        {type:'giftbox',color:'red',w:58,h:58},{type:'giftlid',color:'yellow',w:70,h:22},{type:'ribbon',color:'yellow',w:18,h:65},
+        {type:'bow',color:'yellow',w:34,h:28},{type:'giftbox',color:'blue',w:58,h:58},{type:'giftlid',color:'green',w:68,h:22},
+        {type:'ribbon',color:'purple',w:18,h:62},{type:'bow',color:'orange',w:34,h:28}
+      ]
     }
-  };
-  resetBoard();
+  ];
+
+  let missionIndex=Math.min(Number(localStorage.getItem('brickTownMission')||0),missions.length-1);
+  let stars=Number(localStorage.getItem('brickTownStars')||0);
+  let coins=Number(localStorage.getItem('brickTownCoins')||0);
+  let placed=[],selected=null,completed=false;
+
+  const $=s=>document.querySelector(s);
+  const buildArea=$('#buildArea'),partsEl=$('#parts'),msg=$('#message'),testPanel=$('#testPanel'),testBtn=$('#testBtn');
+
+  function save(){localStorage.setItem('brickTownMission',missionIndex);localStorage.setItem('brickTownStars',stars);localStorage.setItem('brickTownCoins',coins)}
+  function hud(){$('#stars').textContent='⭐ '+stars;$('#coins').textContent='🪙 '+coins;$('#progress').textContent=Math.min(stars,5)+' / 5';document.querySelectorAll('.sticker').forEach((x,i)=>x.classList.toggle('open',i<stars))}
+  function studs(n=2){return '<span class="studs">'+Array.from({length:n},()=>'<i class="stud"></i>').join('')+'</span>'}
+  function partClass(p){if(p.color==='wheel')return 'wheel';if(p.color==='window')return 'window';if(p.color==='ladder')return 'ladder';return p.color}
+  function partHTML(p,scale=1){
+    const cls=partClass(p);const round=p.type==='wheel'?'border-radius:50%;':'';
+    return '<div class="part '+cls+'" style="width:'+p.w*scale+'px;height:'+p.h*scale+'px;'+round+'">'+(p.type==='wheel'||p.color==='window'||p.color==='ladder'?'':studs(Math.max(1,Math.round(p.w/24))))+'</div>'
+  }
+  function renderMission(){
+    completed=false;placed=[];selected=null;testPanel.classList.remove('show');
+    const m=missions[missionIndex];
+    $('#missionName').textContent=m.name;$('#missionHint').textContent=m.hint;testBtn.textContent=m.test;
+    $('#stepDots').innerHTML=m.slots.map(()=>'<i class="dot"></i>').join('');
+    buildArea.innerHTML='';
+    m.slots.forEach((s,i)=>{
+      const el=document.createElement('button');el.type='button';el.className='slot';el.dataset.slot=i;
+      el.style.left=s.x+'%';el.style.top=s.y+'px';el.style.width=s.w+'%';el.style.height=s.h+'px';el.textContent=s.label;
+      el.addEventListener('click',()=>tryPlace(i,el));buildArea.appendChild(el)
+    });
+    partsEl.innerHTML='';
+    m.tray.forEach((p,i)=>{
+      const b=document.createElement('button');b.type='button';b.className='pick';b.dataset.pick=i;b.innerHTML=partHTML(p,.82);
+      b.addEventListener('click',()=>selectPart(i,b));partsEl.appendChild(b)
+    });
+    msg.textContent='选一个零件，再点蓝图中的位置。';hud()
+  }
+  function selectPart(i,btn){
+    if(completed||btn.classList.contains('used'))return;
+    selected=i;document.querySelectorAll('.pick').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected');
+    const m=missions[missionIndex],p=m.tray[i];
+    const match=m.slots.findIndex((s,idx)=>!placed.some(x=>x.slot===idx)&&s.type===p.type&&s.color===p.color);
+    document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
+    if(match>=0) buildArea.querySelector('[data-slot="'+match+'"]').classList.add('active');
+    msg.textContent='好，找找它应该装在哪里。'
+  }
+  function tryPlace(slotIndex,slotEl){
+    if(completed)return;
+    if(selected===null){slotEl.classList.add('shake');setTimeout(()=>slotEl.classList.remove('shake'),300);msg.textContent='先从下面选一个零件。';return}
+    const m=missions[missionIndex],p=m.tray[selected],s=m.slots[slotIndex];
+    if(placed.some(x=>x.slot===slotIndex)){msg.textContent='这里已经装好啦。';return}
+    if(p.type!==s.type||p.color!==s.color){
+      slotEl.classList.add('shake');setTimeout(()=>slotEl.classList.remove('shake'),300);msg.textContent='这块不太合适，再看看形状和颜色 👀';tone(160,.08);return
+    }
+    const picked=partsEl.querySelector('[data-pick="'+selected+'"]');
+    slotEl.className='slot filled';slotEl.textContent='';
+    const scale=Math.min((slotEl.clientWidth-2)/p.w,(slotEl.clientHeight-2)/p.h);
+    slotEl.innerHTML=partHTML(p,Math.max(.62,Math.min(1.3,scale)));
+    picked.classList.add('used');picked.classList.remove('selected');
+    placed.push({slot:slotIndex,pick:selected});selected=null;
+    document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
+    const dots=document.querySelectorAll('.dot');if(dots[placed.length-1])dots[placed.length-1].classList.add('done');
+    msg.textContent='咔哒！装上了 '+placed.length+' / '+m.slots.length;tone(520,.07);
+    if(placed.length===m.slots.length)finishMission()
+  }
+  function finishMission(){
+    completed=true;stars=Math.max(stars,missionIndex+1);coins+=20;save();hud();testPanel.classList.add('show');
+    msg.textContent='🎉 完成！奖励 20 个积木币。';burst();tone(760,.1);setTimeout(()=>tone(980,.12),120)
+  }
+  function burst(){
+    const fx=$('#fx');for(let i=0;i<10;i++){const s=document.createElement('span');s.className='starfx';s.textContent=i%2?'⭐':'✨';s.style.left=(45+Math.random()*10)+'%';s.style.top='55%';s.style.setProperty('--dx',(Math.random()*180-90)+'px');fx.appendChild(s);setTimeout(()=>s.remove(),950)}
+  }
+  function undo(){
+    if(completed||!placed.length){msg.textContent='现在没有可以拆的积木。';return}
+    const last=placed.pop(),slot=buildArea.querySelector('[data-slot="'+last.slot+'"]'),m=missions[missionIndex],s=m.slots[last.slot];
+    slot.className='slot';slot.innerHTML='';slot.textContent=s.label;
+    const pick=partsEl.querySelector('[data-pick="'+last.pick+'"]');pick.classList.remove('used');
+    document.querySelectorAll('.dot')[placed.length].classList.remove('done');msg.textContent='拆下来啦，可以换一块试试。'
+  }
+  function hint(){
+    const m=missions[missionIndex],idx=m.slots.findIndex((s,i)=>!placed.some(x=>x.slot===i));
+    if(idx<0)return;const s=m.slots[idx];
+    const pidx=m.tray.findIndex((p,i)=>!partsEl.querySelector('[data-pick="'+i+'"]').classList.contains('used')&&p.type===s.type&&p.color===s.color);
+    if(pidx>=0){selectPart(pidx,partsEl.querySelector('[data-pick="'+pidx+'"]'));msg.textContent='💡 看，正确的零件和位置都亮出来了。'}
+  }
+  function runTest(){
+    buildArea.classList.remove('vehicleRun');void buildArea.offsetWidth;buildArea.classList.add('vehicleRun');
+    const m=missions[missionIndex];
+    if(missionIndex===2) msg.textContent='🔥 轰——火箭升空！';
+    else if(missionIndex===3) msg.textContent='🎵 机器人开始跳舞啦！';
+    else if(missionIndex===4) msg.textContent='🎁 礼物打开：你是今天最棒的小工程师！';
+    else msg.textContent='太棒了！测试成功，可以去下一个任务。';
+    tone(620,.08);setTimeout(()=>tone(780,.08),90);
+    setTimeout(()=>{
+      if(missionIndex<missions.length-1){missionIndex++;save();renderMission()}
+      else{msg.textContent='🏆 小镇全部建好啦！你已经完成所有任务。';testBtn.textContent='再玩一遍';testBtn.onclick=()=>{missionIndex=0;save();renderMission()}}
+    },1500)
+  }
+  function tone(freq,dur){
+    try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=freq;o.type='sine';g.gain.value=.045;o.connect(g);g.connect(c.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);o.stop(c.currentTime+dur+.01)}catch(e){}
+  }
+  $('#undoBtn').addEventListener('click',undo);$('#hintBtn').addEventListener('click',hint);testBtn.addEventListener('click',runTest);
+  hud();renderMission();
 })();
 </script>
 </body>
