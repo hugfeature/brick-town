@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#eef3f7">
+<title>积木小镇工程师</title>
+<style>
+:root{--bg:#eef3f7;--panel:#fff;--text:#1f2937;--muted:#64748b;--red:#e45446;--yellow:#f2c744;--blue:#4d8ec6;--green:#65a75c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);touch-action:manipulation}
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 28px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:14px 16px}
+h1{font-size:20px;margin:0 0 4px}.sub{font-size:13px;color:var(--muted)}.score{font-size:22px;font-weight:800;white-space:nowrap}
+.game{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.card{background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:12px}.card h2{text-align:center;font-size:15px;margin:0 0 10px}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.cell{aspect-ratio:1;border:2px solid #cbd5e1;border-radius:10px;background:#f8fafc;position:relative;min-width:0}
+button.cell{width:100%;padding:0}
+.cell.brick{border-color:rgba(0,0,0,.2);box-shadow:inset 0 -7px rgba(0,0,0,.12),inset 0 4px rgba(255,255,255,.22)}
+.cell.brick:before{content:"";position:absolute;left:50%;top:9%;transform:translateX(-50%);width:38%;height:18%;min-height:7px;border-radius:50%;background:rgba(255,255,255,.28);border:1px solid rgba(0,0,0,.13)}
+.c1{background:var(--red)!important}.c2{background:var(--yellow)!important}.c3{background:var(--blue)!important}.c4{background:var(--green)!important}
+.palette{margin-top:14px;background:#fff;border:2px solid #d8e0e7;border-radius:18px;padding:13px}
+.palette-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.picks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pick{height:58px;border:3px solid transparent;border-radius:11px;position:relative;box-shadow:inset 0 -8px rgba(0,0,0,.12),inset 0 4px rgba(255,255,255,.22)}
+.pick:before,.pick:after{content:"";position:absolute;top:-7px;width:20px;height:10px;border-radius:50%;background:rgba(255,255,255,.33);border:1px solid rgba(0,0,0,.13)}
+.pick:before{left:18%}.pick:after{right:18%}.pick.sel{outline:4px solid #111827;outline-offset:2px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.action{min-height:52px;border:0;border-radius:14px;font-size:16px;font-weight:800}.check{background:#111827;color:#fff}.clear{background:#fff;border:2px solid #cbd5e1}
+.msg{margin-top:12px;background:#fff;border:2px solid #d8e0e7;border-radius:16px;padding:12px;text-align:center;font-weight:700;min-height:50px}
+.progress{margin-top:12px;background:#fff;border:2px solid #d8e0e7;border-radius:16px;padding:12px}
+.town{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;font-size:30px;text-align:center}.locked{filter:grayscale(1);opacity:.22}
+.tip{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+@media(max-width:430px){.wrap{padding:10px 10px 22px}.game{gap:8px}.card{padding:8px}.board{gap:5px}h1{font-size:18px}.score{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>🧱 积木小镇工程师</h1><div class="sub">照着左边蓝图，把右边搭成一样</div></div>
+    <div class="score" id="score">⭐ 0</div>
+  </div>
+  <div class="game">
+    <div class="card"><h2>👀 蓝图</h2><div class="board" id="target"></div></div>
+    <div class="card"><h2>🛠️ 我来搭</h2><div class="board" id="work"></div></div>
+  </div>
+  <div class="palette">
+    <div class="palette-title">先选一种积木</div>
+    <div class="picks">
+      <button class="pick c1 sel" data-color="1" aria-label="红色积木"></button>
+      <button class="pick c2" data-color="2" aria-label="黄色积木"></button>
+      <button class="pick c3" data-color="3" aria-label="蓝色积木"></button>
+      <button class="pick c4" data-color="4" aria-label="绿色积木"></button>
+    </div>
+    <div class="tip">选颜色 → 点右边格子。再次点同色积木可以拿掉。</div>
+  </div>
+  <div class="actions"><button class="action check" id="check">✅ 完成啦</button><button class="action clear" id="clear">🧹 重新搭</button></div>
+  <div class="msg" id="msg">开始搭吧 👷</div>
+  <div class="progress"><strong>🏘️ 小镇进度</strong><div class="town">
+    <div class="locked">🏠</div><div class="locked">🚒</div><div class="locked">🚗</div><div class="locked">🦖</div><div class="locked">🎁</div>
+  </div></div>
+</div>
+<script>
+(function(){
+  const levels=[
+    [0,2,0,1,1,1,3,0,3],
+    [4,0,4,2,2,2,1,3,1],
+    [0,3,0,4,4,4,2,1,2],
+    [2,2,0,1,3,1,4,4,4],
+    [0,4,0,2,2,2,1,3,1]
+  ];
+  let level=0,stars=0,selected=1,work=new Array(9).fill(0);
+  const targetEl=document.getElementById('target'),workEl=document.getElementById('work'),msg=document.getElementById('msg'),score=document.getElementById('score');
+  const picks=[...document.querySelectorAll('.pick')],town=[...document.querySelectorAll('.town>div')];
+  function cls(v){return v?'cell brick c'+v:'cell'}
+  function renderTarget(){targetEl.innerHTML='';levels[level].forEach(v=>{const d=document.createElement('div');d.className=cls(v);targetEl.appendChild(d)})}
+  function renderWork(){workEl.innerHTML='';work.forEach((v,i)=>{const b=document.createElement('button');b.className=cls(v);b.setAttribute('aria-label','第'+(i+1)+'格');b.onclick=()=>{work[i]=(work[i]===selected?0:selected);renderWork()};workEl.appendChild(b)})}
+  function resetBoard(){work=new Array(9).fill(0);renderTarget();renderWork()}
+  picks.forEach(p=>p.onclick=()=>{selected=Number(p.dataset.color);picks.forEach(x=>x.classList.remove('sel'));p.classList.add('sel');msg.textContent='选好了，开始搭。'});
+  document.getElementById('clear').onclick=()=>{work=new Array(9).fill(0);renderWork();msg.textContent='清空啦，再来一次。'};
+  document.getElementById('check').onclick=()=>{
+    const target=levels[level],ok=work.every((v,i)=>v===target[i]);
+    if(ok){
+      stars++;score.textContent='⭐ '+stars;if(stars<=town.length)town[stars-1].classList.remove('locked');
+      msg.textContent=stars>=5?'🎁 小镇完成！神秘礼物解锁啦！':'🎉 搭对啦！获得一颗星星！';
+      level=(level+1)%levels.length;setTimeout(()=>{resetBoard();msg.textContent='新的蓝图来了！'},700)
+    }else{
+      const correct=work.filter((v,i)=>v===target[i]).length;msg.textContent='还差一点：有 '+correct+' 个位置已经正确。'
+    }
+  };
+  resetBoard();
+})();
+</script>
+</body>
+</html>
