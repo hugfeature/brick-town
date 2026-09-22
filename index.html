@@ -1,311 +1,55 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#dff3ff">
-<title>积木小镇大冒险</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f8f4e9">
+<title>积木小镇 · 小小工程师</title>
 <style>
-:root{
-  --sky:#dff3ff;--grass:#9bc66d;--road:#71808a;--ink:#24313b;--card:#fffdf8;
-  --red:#df5143;--yellow:#f4c542;--blue:#4f8fc9;--green:#62a45d;--orange:#e98a38;--purple:#8a69b7;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(#dff3ff 0 68%,#c7e6ab 68%)}
-button{font:inherit;touch-action:manipulation}
-.app{max-width:780px;margin:0 auto;padding:10px 10px 28px}
-.hud{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;background:rgba(255,255,255,.94);border:2px solid #cbd9e2;border-radius:18px;padding:10px 12px;box-shadow:0 4px 0 rgba(34,48,58,.1)}
-.title{font-weight:900;font-size:19px}.mini{font-size:12px;color:#687783;margin-top:2px}
-.pill{background:#f7f3e7;border:2px solid #e0d9c6;border-radius:999px;padding:7px 10px;font-weight:900;white-space:nowrap}
-.missionCard{margin-top:10px;background:rgba(255,253,248,.96);border:2px solid #d9d3c3;border-radius:20px;padding:12px;box-shadow:0 5px 0 rgba(67,61,45,.1)}
-.missionTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.missionName{font-size:18px;font-weight:900}.missionHint{font-size:12px;color:#6a746f;margin-top:3px}
-.stepDots{display:flex;gap:5px}.dot{width:11px;height:11px;border-radius:50%;background:#d6d9db;border:1px solid #b7bdc0}.dot.done{background:#68a85e}
-.world{position:relative;margin-top:10px;min-height:330px;border:2px solid #9eb5c2;border-radius:22px;overflow:hidden;background:linear-gradient(#aee3ff 0 62%,#9fcf72 62%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.25)}
-.cloud{position:absolute;color:white;font-size:44px;opacity:.9;filter:drop-shadow(0 2px 0 rgba(0,0,0,.06))}
-.c1{left:8%;top:13px}.c2{right:8%;top:35px}
-.sun{position:absolute;right:18px;top:14px;font-size:38px}
-.skyline{position:absolute;left:0;right:0;bottom:105px;height:70px;display:flex;align-items:flex-end;gap:7px;padding:0 12px;opacity:.55}
-.bld{flex:1;background:#d7d8d1;border:2px solid rgba(0,0,0,.12);border-bottom:0;border-radius:5px 5px 0 0;position:relative}
-.bld:after{content:"";position:absolute;inset:8px;background:repeating-linear-gradient(90deg,#97c3d0 0 8px,transparent 8px 15px),repeating-linear-gradient(0deg,#97c3d0 0 7px,transparent 7px 14px)}
-.road{position:absolute;left:0;right:0;bottom:0;height:108px;background:#6f7c84;border-top:7px solid #d6d7d0}
-.road:after{content:"";position:absolute;left:0;right:0;top:48px;height:5px;background:repeating-linear-gradient(90deg,#f8e083 0 34px,transparent 34px 58px)}
-.stage{position:absolute;left:4%;right:4%;bottom:70px;height:190px;display:flex;align-items:flex-end;justify-content:center}
-.buildArea{position:relative;width:min(92%,520px);height:180px}
-.slot{position:absolute;border:3px dashed rgba(42,58,68,.34);border-radius:12px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;color:rgba(42,58,68,.45);font-weight:900;font-size:11px;transition:.18s}
-.slot.active{border-color:#25323c;background:rgba(255,255,255,.52);transform:scale(1.03)}
-.slot.filled{border-color:transparent;background:transparent}
-.part{position:relative;border:2px solid rgba(0,0,0,.22);border-radius:8px;box-shadow:inset 0 -7px 0 rgba(0,0,0,.12),inset 0 4px 0 rgba(255,255,255,.22),0 3px 0 rgba(0,0,0,.12)}
-.part .studs{position:absolute;left:5px;right:5px;top:-7px;height:10px;display:flex;justify-content:space-around}
-.stud{width:14px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.18)}
-.red{background:var(--red)}.yellow{background:var(--yellow)}.blue{background:var(--blue)}.green{background:var(--green)}.orange{background:var(--orange)}.purple{background:var(--purple)}
-.wheel{border-radius:50%;background:#30383e;border:4px solid #1e2428;box-shadow:inset 0 0 0 5px #838d94}
-.window{background:#9ad8ec;border-color:#5f8ca0;box-shadow:inset 0 0 0 4px rgba(255,255,255,.28),0 3px 0 rgba(0,0,0,.1)}
-.ladder{background:repeating-linear-gradient(90deg,#e8e9e5 0 8px,#9a9f9d 8px 12px);border-color:#7c8380}
-.partTray{margin-top:10px;background:rgba(255,255,255,.96);border:2px solid #d0d7db;border-radius:20px;padding:12px}
-.trayHeader{display:flex;justify-content:space-between;gap:10px;align-items:center}.trayTitle{font-weight:900}.trayHint{font-size:12px;color:#6c7880}
-.parts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}
-.pick{min-height:64px;border:3px solid transparent;border-radius:14px;background:#edf2f4;display:flex;align-items:center;justify-content:center;padding:8px}
-.pick.selected{border-color:#26333c;background:#fff5c8;transform:translateY(-2px)}
-.pick.used{opacity:.25;filter:grayscale(.7)}
-.pick .part{max-width:100%}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
-.ctrl{min-height:50px;border-radius:15px;border:0;font-weight:900;font-size:15px}.ghost{background:#fff;border:2px solid #cbd5da}.primary{background:#25333d;color:#fff}
-.message{margin-top:9px;background:#fff9d9;border:2px solid #e5d486;border-radius:15px;padding:10px 12px;text-align:center;font-weight:800;min-height:45px}
-.album{margin-top:10px;background:rgba(255,255,255,.94);border:2px solid #d0d7db;border-radius:18px;padding:10px}
-.albumTitle{display:flex;justify-content:space-between;font-weight:900}.stickers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}.sticker{font-size:30px;text-align:center;filter:grayscale(1);opacity:.2}.sticker.open{filter:none;opacity:1;animation:pop .35s ease}
-.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}.starfx{position:absolute;font-size:24px;animation:fly 900ms ease-out forwards}
-.testPanel{display:none;margin-top:10px;background:#fff;border:2px solid #cfd8dd;border-radius:18px;padding:10px;text-align:center}.testPanel.show{display:block}.testBtn{min-height:50px;width:100%;border:0;border-radius:14px;background:#f0b941;font-size:17px;font-weight:900}
-.vehicleRun{animation:drive 1.7s ease-in-out}
-.shake{animation:shake .28s linear}
-@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
-@keyframes fly{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),-120px) scale(1.5);opacity:0}}
-@keyframes drive{0%{transform:translateX(-40px)}45%{transform:translateX(60px)}70%{transform:translateX(35px)}100%{transform:translateX(0)}}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
-@media(max-width:430px){
-  .app{padding:8px 8px 24px}.title{font-size:17px}.pill{padding:6px 8px;font-size:13px}
-  .world{min-height:310px}.stage{bottom:67px;height:170px}.buildArea{height:165px}.parts{gap:6px}.pick{min-height:59px;padding:6px}
-}
+:root{--ink:#263d37;--muted:#79877c;--paper:#f8f4e9;--green:#337c60;--yellow:#f6c957;--line:#e1e4d7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:ui-rounded,"PingFang SC","Microsoft YaHei",system-ui,sans-serif}button{font:inherit;cursor:pointer;touch-action:manipulation;color:inherit}button:disabled{cursor:default;opacity:.45}button:focus-visible{outline:3px solid #dc8a27;outline-offset:3px}.wrap{max-width:1050px;margin:auto;padding:22px 24px 35px}header{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{display:flex;gap:11px;align-items:center}.logo{background:var(--green);color:#fff;border-radius:15px;font-size:27px;padding:8px 11px;box-shadow:0 4px 0 #235b45}.brand h1{font-size:21px;letter-spacing:1px;margin:0}.eyebrow{font-size:10px;letter-spacing:2px;color:var(--muted);margin-top:5px}.top-actions{display:flex;gap:7px}.iconbtn{border:1px solid var(--line);background:#fffdf6;border-radius:13px;padding:10px 13px;min-height:44px}.intro{display:flex;justify-content:space-between;align-items:end;margin:27px 0 17px}.intro h2{font-size:28px;margin:0 0 6px;letter-spacing:-1px}.intro p{font-size:13px;color:var(--muted);margin:0}.chapter{font-size:12px;white-space:nowrap;background:#e8eddf;padding:8px 12px;border-radius:25px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:18px}.scene-card{background:white;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 7px 0 #e9e9dd}.scene-head{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;font-size:13px}.live{display:flex;align-items:center;gap:7px}.live:before{content:'';width:7px;height:7px;border-radius:50%;background:#69a87a}.scene{position:relative;background:#d9eef0;aspect-ratio:640/365;overflow:hidden}.scene svg{width:100%;height:100%;display:block}.bridge-grid{position:absolute;left:18%;width:64%;top:63%;height:12%;display:grid;grid-template-columns:repeat(8,1fr);gap:2px}.cell{position:relative;min-width:0;border:2px dashed #8ac4c8;background:#c6edef55;border-radius:5px;padding:0;font-size:11px;color:#527b7c}.cell.land{background:#d8c4a0;border:0;color:#907d5c}.cell.filled{background:var(--brick,#eead53);border:1px solid #9b743b;box-shadow:inset 0 -5px #0002,0 3px #6d714450}.cell.filled:before{content:'••';letter-spacing:6px;color:#ffffff88;position:absolute;inset:0;font-size:18px}.cell.mark{outline:3px solid #e5a130;z-index:2}.truck{position:absolute;left:3%;top:48%;width:14%;height:17%;transition:left 1.6s ease-in-out;z-index:3}.truck svg{overflow:visible}.scene-footer{padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}.tags{display:flex;gap:6px}.tag{padding:5px 8px;background:#f0f3e9;border-radius:7px;color:#61836a;font-size:11px}.panel{background:#fffdf8;border:1px solid var(--line);border-radius:23px;padding:18px;display:flex;flex-direction:column;gap:14px}.resident{display:flex;gap:10px;align-items:center}.avatar{font-size:30px;background:#fae8c5;border-radius:16px;padding:9px}.resident strong{font-size:15px}.resident small{display:block;font-size:11px;color:var(--muted);margin-top:5px}.bubble{background:#f0f3e8;border-radius:4px 17px 17px;padding:14px;line-height:1.7;font-size:14px}.bubble button{border:0;background:transparent;padding:0 4px;font-size:18px}.label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}.cargo{display:flex;align-items:center;justify-content:space-between;background:#fff5df;border:1px solid #f0e0b9;border-radius:14px;padding:9px}.cargo button{border:0;background:#fff;border-radius:10px;font-size:24px;width:40px;height:40px}.cargo-count{font-size:23px;font-weight:800}.primary{background:var(--green);color:white;border:0;border-bottom:4px solid #255b47;border-radius:14px;padding:13px;font-weight:700;font-size:16px;min-height:50px}.primary:active{transform:translateY(2px);border-bottom-width:2px}.secondary{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;min-height:44px}.toolbox{margin-top:18px;background:#fffdf8;border:1px solid var(--line);border-radius:22px;padding:17px}.toolhead{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:13px}.toolhead strong{font-size:14px}.toolhead span{font-size:12px;color:var(--muted)}.pieces{display:flex;gap:10px}.piece{flex:1;min-width:0;background:#f5f1e7;border:2px solid transparent;border-radius:14px;padding:14px 6px 10px;min-height:90px}.piece.selected{border-color:var(--green);background:#eaf2e8}.brick{height:25px;background:var(--brick);width:var(--w);max-width:90%;margin:5px auto 11px;position:relative;border-radius:4px;box-shadow:inset 0 -5px #0002,0 3px #0001}.brick:before{content:'';position:absolute;left:5px;right:5px;top:-5px;height:7px;background:radial-gradient(ellipse,#ffffff88 60%,transparent 66%) 0 0/18px 7px}.piece small{font-size:11px}.tool-actions{display:flex;gap:8px;margin-top:12px}.tool-actions button{flex:1}.status{margin:16px 0 0;min-height:50px;background:#eeeede;border-radius:15px;padding:13px 16px;font-size:14px;line-height:1.7}.bottom{display:flex;justify-content:space-between;margin-top:19px;gap:12px;align-items:center}.bottom p{font-size:11px;color:var(--muted);margin:0}.nav{display:flex;gap:8px}.nav button{font-size:12px}.overlay{position:fixed;inset:0;background:#263d3766;z-index:10;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}.overlay[hidden]{display:none}.modal{background:var(--paper);border-radius:26px;padding:25px;max-width:560px;width:100%;max-height:90vh;overflow:auto;text-align:center;box-shadow:0 20px 70px #19312833}.modal h2{margin:10px 0;font-size:24px}.modal p{font-size:14px;line-height:1.8;color:#637469}.modal .primary{width:100%;margin-top:12px}.map-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.map-item{border:1px solid var(--line);border-radius:15px;background:white;padding:15px 5px;min-height:100px}.map-item span{display:block;font-size:30px;margin-bottom:6px}.map-item small{font-size:11px}.free-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin:18px 0;background:#d9e5d2;padding:8px;border-radius:14px}.free-cell{aspect-ratio:1;border:0;border-radius:4px;background:#f4f5eccc;font-size:16px;min-width:0;padding:0}.palette{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.swatch{height:42px;width:42px;border:3px solid white;border-radius:10px}.swatch.selected{outline:3px solid var(--ink)}.success-icon{font-size:60px;margin:8px}.confetti{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#ffd666 3px,transparent 4px),radial-gradient(#74b492 3px,transparent 4px);background-size:70px 60px,90px 80px;animation:party 1s ease-out forwards}@keyframes party{from{opacity:1;transform:translateY(-70px)}to{opacity:0;transform:translateY(100px)}}@media(max-width:760px){.wrap{padding:14px 14px 25px}.brand h1{font-size:17px}.logo{font-size:22px;padding:7px 9px}.eyebrow{font-size:8px;letter-spacing:1px}.top-actions .iconbtn{padding:8px 10px}.intro{margin-top:23px}.intro h2{font-size:24px}.layout{grid-template-columns:1fr;gap:15px}.panel{display:grid;grid-template-columns:1fr 1fr;padding:14px;gap:10px}.resident{grid-column:1}.bubble{grid-column:1/-1;grid-row:2;padding:10px 13px}.cargo-wrap{grid-column:1;grid-row:3}.panel>.primary{grid-column:2;grid-row:3;align-self:end}.panel>.secondary{grid-column:2;grid-row:1;font-size:12px}.label{margin-bottom:5px}.scene-footer{padding:11px 13px}.toolbox{margin-top:14px;padding:14px}.bottom{align-items:start}.bottom p{max-width:130px;line-height:1.6}.piece{min-height:82px}.scene-head{padding:12px 14px}.chapter{font-size:11px}.scene{aspect-ratio:640/390}.tags .tag:last-child{display:none}}@media(prefers-reduced-motion:reduce){*,*:before{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="hud">
-    <div><div class="title">🧱 积木小镇大冒险</div><div class="mini">完成任务，把小镇一点点建起来</div></div>
-    <div class="pill" id="stars">⭐ 0</div>
-    <div class="pill" id="coins">🪙 0</div>
-  </div>
-
-  <section class="missionCard">
-    <div class="missionTop">
-      <div><div class="missionName" id="missionName">消防车出动</div><div class="missionHint" id="missionHint">按蓝图把积木一块块装上去</div></div>
-      <div class="stepDots" id="stepDots"></div>
-    </div>
-  </section>
-
-  <section class="world" id="world">
-    <div class="cloud c1">☁</div><div class="cloud c2">☁</div><div class="sun">☀️</div>
-    <div class="skyline">
-      <div class="bld" style="height:42px"></div><div class="bld" style="height:60px"></div><div class="bld" style="height:50px"></div><div class="bld" style="height:68px"></div><div class="bld" style="height:45px"></div>
-    </div>
-    <div class="stage"><div class="buildArea" id="buildArea"></div></div>
-    <div class="road"></div>
-    <div class="fx" id="fx"></div>
-  </section>
-
-  <section class="partTray">
-    <div class="trayHeader"><div class="trayTitle">零件箱</div><div class="trayHint" id="trayHint">先点一个零件，再点闪亮的位置</div></div>
-    <div class="parts" id="parts"></div>
-  </section>
-
-  <div class="controls">
-    <button class="ctrl ghost" id="undoBtn">↩️ 拆掉上一块</button>
-    <button class="ctrl primary" id="hintBtn">💡 提示我</button>
-  </div>
-
-  <div class="message" id="message">选一个零件开始搭吧！</div>
-
-  <section class="testPanel" id="testPanel">
-    <div style="font-weight:900;margin-bottom:8px" id="testTitle">搭好了！现在试试它</div>
-    <button class="testBtn" id="testBtn">🚒 出动！</button>
-  </section>
-
-  <section class="album">
-    <div class="albumTitle"><span>🏆 我的积木收藏</span><span id="progress">0 / 5</span></div>
-    <div class="stickers">
-      <div class="sticker">🚒</div><div class="sticker">🚜</div><div class="sticker">🚀</div><div class="sticker">🤖</div><div class="sticker">🎁</div>
-    </div>
-  </section>
-</div>
-
+<main class="wrap">
+<header><div class="brand"><div class="logo">▦</div><div><h1>积木小镇</h1><div class="eyebrow">LITTLE BUILDERS · 小小工程师</div></div></div><div class="top-actions"><button class="iconbtn" id="sound" aria-label="开启语音" aria-pressed="false">🔇</button><button class="iconbtn" id="mapBtn">🏡 小镇</button></div></header>
+<section class="intro"><div><h2 id="levelTitle">第一座小桥</h2><p>动动手，试试看。小镇等着你的好主意。</p></div><span class="chapter" id="chapter"></span></section>
+<div class="layout"><div><section class="scene-card"><div class="scene-head"><span class="live">河畔工地</span><span id="sceneGoal">🌉 搭桥 → 📦 送货</span></div><div class="scene" id="scene">
+<svg viewBox="0 0 640 365" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="water" width="65" height="30" patternUnits="userSpaceOnUse"><path d="M5 15q12-7 24 0" fill="none" stroke="#a8dee0" stroke-width="3" stroke-linecap="round"/></pattern></defs><rect width="640" height="365" fill="#d9eef0"/><circle cx="494" cy="58" r="27" fill="#ffdd83"/><g fill="#fff" opacity=".8"><rect x="52" y="49" width="85" height="18" rx="9"/><ellipse cx="91" cy="48" rx="23" ry="15"/><rect x="303" y="30" width="68" height="15" rx="8"/></g><path d="M0 155Q80 94 169 143T363 144T640 129V365H0" fill="#bcd8b1"/><path d="M0 190Q90 133 193 179T399 172T640 174V365H0" fill="#9fc79e"/><path d="M186 169Q340 145 451 182L515 365H113Z" fill="#78c4cf"/><path d="M186 169Q340 145 451 182L515 365H113Z" fill="url(#water)"/><path d="M0 240H119M520 240H640" stroke="#e8d9b5" stroke-width="38"/><path d="M0 242H109M530 242H640" stroke="#faf0d8" stroke-width="3" stroke-dasharray="10 12"/><g transform="translate(517 116)"><rect x="0" y="31" width="87" height="68" rx="5" fill="#fff1cb"/><path d="M-9 33L43-4 95 33" fill="#db8468"/><rect x="31" y="57" width="24" height="42" rx="3" fill="#7d9d80"/><rect x="8" y="48" width="16" height="20" rx="3" fill="#96cad1"/><rect x="62" y="48" width="16" height="20" rx="3" fill="#96cad1"/><rect x="19" y="31" width="50" height="16" rx="5" fill="#fffaf0"/><text x="44" y="43" text-anchor="middle" font-size="10" fill="#657264">小镇商店</text></g><g fill="#659866"><circle cx="44" cy="165" r="23"/><circle cx="65" cy="175" r="21"/><circle cx="582" cy="296" r="25"/><circle cx="608" cy="306" r="21"/></g><g fill="#f4d77b"><circle cx="50" cy="305" r="4"/><circle cx="80" cy="320" r="4"/><circle cx="556" cy="337" r="4"/></g><g fill="#fff7dd"><ellipse cx="288" cy="317" rx="12" ry="7"/><circle cx="299" cy="311" r="6"/></g><path d="M304 311h7" stroke="#e9a752" stroke-width="4"/></svg>
+<div class="bridge-grid" id="bridge" aria-label="桥面，共八格"></div><div class="truck" id="truck"><svg viewBox="0 0 100 64" aria-label="送货小车"><rect x="4" y="19" width="52" height="33" rx="5" fill="#edb744"/><path d="M57 24H78L93 39V52H57Z" fill="#dc7d57"/><path d="M63 29H75L84 39H63Z" fill="#d6f0ec"/><rect x="11" y="7" width="34" height="17" rx="3" fill="#b99161"/><path d="M28 8V22" stroke="#ead5a7" stroke-width="5"/><circle cx="24" cy="53" r="10" fill="#344a46"/><circle cx="76" cy="53" r="10" fill="#344a46"/><circle cx="24" cy="53" r="4" fill="#efeadc"/><circle cx="76" cy="53" r="4" fill="#efeadc"/></svg></div></div><div class="scene-footer"><span id="bridgeCount"></span><div class="tags"><span class="tag">空间搭建</span><span class="tag">试试再改</span></div></div></section>
+<section class="toolbox"><div class="toolhead"><strong>🧱 我的零件箱</strong><span>选积木，再点桥面的空格</span></div><div class="pieces" id="pieces"></div><div class="tool-actions"><button class="secondary" id="undo">↶ 拆回一块</button><button class="secondary" id="hint">💡 给我一点提示</button></div></section></div>
+<aside class="panel"><div class="resident"><span class="avatar" id="avatar">🐰</span><div><strong id="resident"></strong><small>来自小镇的求助</small></div></div><div class="bubble"><span id="request"></span> <button id="speak" aria-label="朗读任务">🔊</button></div><div class="cargo-wrap"><div class="label"><span>装好货物</span><span id="cargoTarget"></span></div><div class="cargo"><button id="minus" aria-label="减少一个货箱">−</button><span class="cargo-count" id="cargoCount"></span><button id="plus" aria-label="增加一个货箱">+</button></div></div><button class="primary" id="test">🚚 出发，试一试</button><button class="secondary" id="freeBtn">🎨 自由搭建</button></aside></div>
+<div class="status" id="status" role="status" aria-live="polite"></div><footer class="bottom"><p>不着急，想一想也算在前进。<br>进度保存在这台设备上。</p><div class="nav"><button class="secondary" id="rest">🌙 休息一下</button><button class="secondary" id="parent">给爸爸妈妈</button></div></footer>
+</main><div class="overlay" id="overlay" hidden><section class="modal" id="modal" role="dialog" aria-modal="true" aria-label="小镇窗口" tabindex="-1"></section></div>
 <script>
-(function(){
-  const missions=[
-    {
-      name:'消防车出动',hint:'先装车身，再装驾驶室、轮子和云梯',test:'🚒 出动！',reward:'🚒',
-      slots:[
-        {id:'body',x:22,y:88,w:56,h:38,type:'body',color:'red',label:'车身'},
-        {id:'cab',x:60,y:58,w:26,h:34,type:'cab',color:'red',label:'驾驶室'},
-        {id:'window',x:65,y:63,w:14,h:15,type:'window',color:'window',label:'车窗'},
-        {id:'wheel1',x:29,y:119,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
-        {id:'wheel2',x:66,y:119,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
-        {id:'ladder',x:24,y:48,w:47,h:16,type:'ladder',color:'ladder',label:'云梯'}
-      ],
-      tray:[
-        {type:'body',color:'red',w:70,h:34},{type:'cab',color:'red',w:45,h:42},{type:'wheel',color:'wheel',w:38,h:38},
-        {type:'ladder',color:'ladder',w:72,h:20},{type:'window',color:'window',w:38,h:31},{type:'body',color:'blue',w:62,h:30},
-        {type:'cab',color:'yellow',w:42,h:38},{type:'wheel',color:'wheel',w:38,h:38}
-      ]
-    },
-    {
-      name:'挖掘机修路',hint:'把黄色积木拼成能工作的挖掘机',test:'🚜 开工挖土！',reward:'🚜',
-      slots:[
-        {id:'base',x:20,y:103,w:60,h:28,type:'body',color:'yellow',label:'底座'},
-        {id:'cab',x:53,y:69,w:28,h:37,type:'cab',color:'yellow',label:'驾驶室'},
-        {id:'window',x:59,y:75,w:15,h:16,type:'window',color:'window',label:'车窗'},
-        {id:'wheel1',x:27,y:123,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
-        {id:'wheel2',x:61,y:123,w:18,h:18,type:'wheel',color:'wheel',label:'轮子'},
-        {id:'arm',x:18,y:54,w:42,h:15,type:'arm',color:'orange',label:'机械臂'},
-        {id:'bucket',x:9,y:68,w:22,h:24,type:'bucket',color:'orange',label:'铲斗'}
-      ],
-      tray:[
-        {type:'body',color:'yellow',w:68,h:30},{type:'cab',color:'yellow',w:44,h:44},{type:'wheel',color:'wheel',w:38,h:38},
-        {type:'arm',color:'orange',w:68,h:18},{type:'bucket',color:'orange',w:38,h:34},{type:'window',color:'window',w:38,h:31},
-        {type:'body',color:'red',w:60,h:28},{type:'arm',color:'green',w:62,h:18}
-      ]
-    },
-    {
-      name:'火箭发射基地',hint:'从下往上拼，别忘了两个推进器',test:'🚀 3、2、1，发射！',reward:'🚀',
-      slots:[
-        {id:'core',x:40,y:57,w:22,h:67,type:'rocket',color:'blue',label:'火箭'},
-        {id:'nose',x:40,y:33,w:22,h:26,type:'nose',color:'red',label:'火箭头'},
-        {id:'window',x:44,y:70,w:14,h:14,type:'window',color:'window',label:'舷窗'},
-        {id:'booster1',x:29,y:92,w:15,h:38,type:'booster',color:'yellow',label:'推进器'},
-        {id:'booster2',x:58,y:92,w:15,h:38,type:'booster',color:'yellow',label:'推进器'},
-        {id:'flame1',x:30,y:127,w:13,h:19,type:'flame',color:'orange',label:'火焰'},
-        {id:'flame2',x:59,y:127,w:13,h:19,type:'flame',color:'orange',label:'火焰'}
-      ],
-      tray:[
-        {type:'rocket',color:'blue',w:35,h:65},{type:'nose',color:'red',w:36,h:35},{type:'booster',color:'yellow',w:28,h:54},
-        {type:'window',color:'window',w:34,h:34},{type:'flame',color:'orange',w:26,h:38},{type:'rocket',color:'green',w:35,h:62},
-        {type:'nose',color:'purple',w:34,h:34},{type:'booster',color:'red',w:28,h:50}
-      ]
-    },
-    {
-      name:'机器人朋友',hint:'给机器人装身体、脑袋、手和脚',test:'🤖 机器人跳舞！',reward:'🤖',
-      slots:[
-        {id:'body',x:38,y:71,w:28,h:42,type:'robotbody',color:'green',label:'身体'},
-        {id:'head',x:40,y:43,w:24,h:27,type:'robothead',color:'yellow',label:'脑袋'},
-        {id:'eye',x:45,y:50,w:14,h:9,type:'eye',color:'window',label:'眼睛'},
-        {id:'arm1',x:24,y:76,w:17,h:38,type:'armblock',color:'blue',label:'手臂'},
-        {id:'arm2',x:63,y:76,w:17,h:38,type:'armblock',color:'blue',label:'手臂'},
-        {id:'leg1',x:39,y:111,w:12,h:36,type:'leg',color:'purple',label:'腿'},
-        {id:'leg2',x:54,y:111,w:12,h:36,type:'leg',color:'purple',label:'腿'}
-      ],
-      tray:[
-        {type:'robotbody',color:'green',w:45,h:48},{type:'robothead',color:'yellow',w:42,h:38},{type:'armblock',color:'blue',w:27,h:54},
-        {type:'leg',color:'purple',w:24,h:50},{type:'eye',color:'window',w:38,h:24},{type:'robotbody',color:'red',w:44,h:47},
-        {type:'robothead',color:'orange',w:40,h:36},{type:'leg',color:'green',w:24,h:48}
-      ]
-    },
-    {
-      name:'神秘礼物工坊',hint:'最后一关！把礼物盒完整拼起来',test:'🎁 打开礼物！',reward:'🎁',
-      slots:[
-        {id:'box',x:31,y:72,w:42,h:54,type:'giftbox',color:'red',label:'礼物盒'},
-        {id:'lid',x:27,y:61,w:50,h:16,type:'giftlid',color:'yellow',label:'盒盖'},
-        {id:'ribbon1',x:49,y:61,w:8,h:65,type:'ribbon',color:'yellow',label:'丝带'},
-        {id:'bow1',x:37,y:43,w:18,h:20,type:'bow',color:'yellow',label:'蝴蝶结'},
-        {id:'bow2',x:54,y:43,w:18,h:20,type:'bow',color:'yellow',label:'蝴蝶结'}
-      ],
-      tray:[
-        {type:'giftbox',color:'red',w:58,h:58},{type:'giftlid',color:'yellow',w:70,h:22},{type:'ribbon',color:'yellow',w:18,h:65},
-        {type:'bow',color:'yellow',w:34,h:28},{type:'giftbox',color:'blue',w:58,h:58},{type:'giftlid',color:'green',w:68,h:22},
-        {type:'ribbon',color:'purple',w:18,h:62},{type:'bow',color:'orange',w:34,h:28}
-      ]
-    }
-  ];
-
-  let missionIndex=Math.min(Number(localStorage.getItem('brickTownMission')||0),missions.length-1);
-  let stars=Number(localStorage.getItem('brickTownStars')||0);
-  let coins=Number(localStorage.getItem('brickTownCoins')||0);
-  let placed=[],selected=null,completed=false;
-
-  const $=s=>document.querySelector(s);
-  const buildArea=$('#buildArea'),partsEl=$('#parts'),msg=$('#message'),testPanel=$('#testPanel'),testBtn=$('#testBtn');
-
-  function save(){localStorage.setItem('brickTownMission',missionIndex);localStorage.setItem('brickTownStars',stars);localStorage.setItem('brickTownCoins',coins)}
-  function hud(){$('#stars').textContent='⭐ '+stars;$('#coins').textContent='🪙 '+coins;$('#progress').textContent=Math.min(stars,5)+' / 5';document.querySelectorAll('.sticker').forEach((x,i)=>x.classList.toggle('open',i<stars))}
-  function studs(n=2){return '<span class="studs">'+Array.from({length:n},()=>'<i class="stud"></i>').join('')+'</span>'}
-  function partClass(p){if(p.color==='wheel')return 'wheel';if(p.color==='window')return 'window';if(p.color==='ladder')return 'ladder';return p.color}
-  function partHTML(p,scale=1){
-    const cls=partClass(p);const round=p.type==='wheel'?'border-radius:50%;':'';
-    return '<div class="part '+cls+'" style="width:'+p.w*scale+'px;height:'+p.h*scale+'px;'+round+'">'+(p.type==='wheel'||p.color==='window'||p.color==='ladder'?'':studs(Math.max(1,Math.round(p.w/24))))+'</div>'
-  }
-  function renderMission(){
-    completed=false;placed=[];selected=null;testPanel.classList.remove('show');
-    const m=missions[missionIndex];
-    $('#missionName').textContent=m.name;$('#missionHint').textContent=m.hint;testBtn.textContent=m.test;
-    $('#stepDots').innerHTML=m.slots.map(()=>'<i class="dot"></i>').join('');
-    buildArea.innerHTML='';
-    m.slots.forEach((s,i)=>{
-      const el=document.createElement('button');el.type='button';el.className='slot';el.dataset.slot=i;
-      el.style.left=s.x+'%';el.style.top=s.y+'px';el.style.width=s.w+'%';el.style.height=s.h+'px';el.textContent=s.label;
-      el.addEventListener('click',()=>tryPlace(i,el));buildArea.appendChild(el)
-    });
-    partsEl.innerHTML='';
-    m.tray.forEach((p,i)=>{
-      const b=document.createElement('button');b.type='button';b.className='pick';b.dataset.pick=i;b.innerHTML=partHTML(p,.82);
-      b.addEventListener('click',()=>selectPart(i,b));partsEl.appendChild(b)
-    });
-    msg.textContent='选一个零件，再点蓝图中的位置。';hud()
-  }
-  function selectPart(i,btn){
-    if(completed||btn.classList.contains('used'))return;
-    selected=i;document.querySelectorAll('.pick').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected');
-    const m=missions[missionIndex],p=m.tray[i];
-    const match=m.slots.findIndex((s,idx)=>!placed.some(x=>x.slot===idx)&&s.type===p.type&&s.color===p.color);
-    document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
-    if(match>=0) buildArea.querySelector('[data-slot="'+match+'"]').classList.add('active');
-    msg.textContent='好，找找它应该装在哪里。'
-  }
-  function tryPlace(slotIndex,slotEl){
-    if(completed)return;
-    if(selected===null){slotEl.classList.add('shake');setTimeout(()=>slotEl.classList.remove('shake'),300);msg.textContent='先从下面选一个零件。';return}
-    const m=missions[missionIndex],p=m.tray[selected],s=m.slots[slotIndex];
-    if(placed.some(x=>x.slot===slotIndex)){msg.textContent='这里已经装好啦。';return}
-    if(p.type!==s.type||p.color!==s.color){
-      slotEl.classList.add('shake');setTimeout(()=>slotEl.classList.remove('shake'),300);msg.textContent='这块不太合适，再看看形状和颜色 👀';tone(160,.08);return
-    }
-    const picked=partsEl.querySelector('[data-pick="'+selected+'"]');
-    slotEl.className='slot filled';slotEl.textContent='';
-    const scale=Math.min((slotEl.clientWidth-2)/p.w,(slotEl.clientHeight-2)/p.h);
-    slotEl.innerHTML=partHTML(p,Math.max(.62,Math.min(1.3,scale)));
-    picked.classList.add('used');picked.classList.remove('selected');
-    placed.push({slot:slotIndex,pick:selected});selected=null;
-    document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
-    const dots=document.querySelectorAll('.dot');if(dots[placed.length-1])dots[placed.length-1].classList.add('done');
-    msg.textContent='咔哒！装上了 '+placed.length+' / '+m.slots.length;tone(520,.07);
-    if(placed.length===m.slots.length)finishMission()
-  }
-  function finishMission(){
-    completed=true;stars=Math.max(stars,missionIndex+1);coins+=20;save();hud();testPanel.classList.add('show');
-    msg.textContent='🎉 完成！奖励 20 个积木币。';burst();tone(760,.1);setTimeout(()=>tone(980,.12),120)
-  }
-  function burst(){
-    const fx=$('#fx');for(let i=0;i<10;i++){const s=document.createElement('span');s.className='starfx';s.textContent=i%2?'⭐':'✨';s.style.left=(45+Math.random()*10)+'%';s.style.top='55%';s.style.setProperty('--dx',(Math.random()*180-90)+'px');fx.appendChild(s);setTimeout(()=>s.remove(),950)}
-  }
-  function undo(){
-    if(completed||!placed.length){msg.textContent='现在没有可以拆的积木。';return}
-    const last=placed.pop(),slot=buildArea.querySelector('[data-slot="'+last.slot+'"]'),m=missions[missionIndex],s=m.slots[last.slot];
-    slot.className='slot';slot.innerHTML='';slot.textContent=s.label;
-    const pick=partsEl.querySelector('[data-pick="'+last.pick+'"]');pick.classList.remove('used');
-    document.querySelectorAll('.dot')[placed.length].classList.remove('done');msg.textContent='拆下来啦，可以换一块试试。'
-  }
-  function hint(){
-    const m=missions[missionIndex],idx=m.slots.findIndex((s,i)=>!placed.some(x=>x.slot===i));
-    if(idx<0)return;const s=m.slots[idx];
-    const pidx=m.tray.findIndex((p,i)=>!partsEl.querySelector('[data-pick="'+i+'"]').classList.contains('used')&&p.type===s.type&&p.color===s.color);
-    if(pidx>=0){selectPart(pidx,partsEl.querySelector('[data-pick="'+pidx+'"]'));msg.textContent='💡 看，正确的零件和位置都亮出来了。'}
-  }
-  function runTest(){
-    buildArea.classList.remove('vehicleRun');void buildArea.offsetWidth;buildArea.classList.add('vehicleRun');
-    const m=missions[missionIndex];
-    if(missionIndex===2) msg.textContent='🔥 轰——火箭升空！';
-    else if(missionIndex===3) msg.textContent='🎵 机器人开始跳舞啦！';
-    else if(missionIndex===4) msg.textContent='🎁 礼物打开：你是今天最棒的小工程师！';
-    else msg.textContent='太棒了！测试成功，可以去下一个任务。';
-    tone(620,.08);setTimeout(()=>tone(780,.08),90);
-    setTimeout(()=>{
-      if(missionIndex<missions.length-1){missionIndex++;save();renderMission()}
-      else{msg.textContent='🏆 小镇全部建好啦！你已经完成所有任务。';testBtn.textContent='再玩一遍';testBtn.onclick=()=>{missionIndex=0;save();renderMission()}}
-    },1500)
-  }
-  function tone(freq,dur){
-    try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=freq;o.type='sine';g.gain.value=.045;o.connect(g);g.connect(c.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);o.stop(c.currentTime+dur+.01)}catch(e){}
-  }
-  $('#undoBtn').addEventListener('click',undo);$('#hintBtn').addEventListener('click',hint);testBtn.addEventListener('click',runTest);
-  hud();renderMission();
+(()=>{'use strict';
+const $=id=>document.getElementById(id),colors=['#e9b64e','#da8269','#74a799','#779dc2'];
+const levels=[
+{title:'第一座小桥',who:'兔子店长',face:'🐰',need:2,gap:[2,3,4],stock:[1,1,0],text:'商店需要 2 箱苹果。先搭一座小桥，再帮我送过来吧！',icon:'🍎'},
+{title:'花园要开花啦',who:'小熊园丁',face:'🐻',need:3,gap:[2,3,4,5],stock:[0,2,0],text:'花园需要 3 箱种子。这次试试用两块一样长的积木搭桥。',icon:'🌷'},
+{title:'面包店的早餐',who:'小猫面包师',face:'🐱',need:4,gap:[1,2,3,4,5],stock:[0,1,1],text:'请送来 4 箱面粉。长积木和短积木，怎么搭在一起呢？',icon:'🥐'},
+{title:'小树的新家',who:'狐狸护林员',face:'🦊',need:2,gap:[1,2,4,5,6],stock:[0,1,1],text:'请送来 2 箱树苗。河中间有一块小岛，两边都要接起来。',icon:'🌳'},
+{title:'星光图书馆',who:'猫头鹰馆长',face:'🦉',need:5,gap:[1,2,3,4,5,6],stock:[1,1,2],text:'图书馆需要 5 箱新书。选你喜欢的搭法，不必用完所有积木。',icon:'📚'},
+{title:'小镇野餐日',who:'小镇的朋友们',face:'🐼',need:6,gap:[0,1,2,3,4,5,6,7],stock:[2,3,2],text:'送来 6 箱水果，我们一起野餐！宽宽的河也难不倒小工程师。',icon:'🧺'}];
+let data={done:[],level:0,free:Array(40).fill(null),sound:false};
+try{const d=JSON.parse(localStorage.getItem('brickTownV2'));if(d){data.done=Array.isArray(d.done)?[...new Set(d.done.filter(x=>Number.isInteger(x)&&x>=0&&x<6))]:[];data.level=Number.isInteger(d.level)&&d.level>=0&&d.level<6?d.level:0;data.free=Array.isArray(d.free)&&d.free.length===40?d.free.map(x=>colors.includes(x)?x:null):data.free;data.sound=d.sound===true}}catch(e){}
+let idx=data.level,placed=[],selected=1,cargo=0,busy=false,hints=0,freeColor=colors[0],timer=null,lastFocus=null;
+function save(){try{localStorage.setItem('brickTownV2',JSON.stringify(data))}catch(e){$('status').textContent='这台设备暂时不能保存进度，本次仍然可以继续玩。'}}
+function say(t){if(!data.sound||!('speechSynthesis'in window))return;try{speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
+function message(t){$('status').textContent=t;say(t)}
+function remaining(n){return levels[idx].stock[n-1]-placed.filter(p=>p.n===n).length}
+function covered(i){return placed.some(p=>i>=p.start&&i<p.start+p.n)}
+function render(){const l=levels[idx];$('bridge').innerHTML='';for(let i=0;i<8;i++){let b=document.createElement('button');const gap=l.gap.includes(i),p=placed.find(p=>i>=p.start&&i<p.start+p.n);b.className='cell '+(!gap?'land':p?'filled':'');b.textContent=gap&&!p?'＋':'';b.setAttribute('aria-label',`第${i+1}格，${!gap?'岸边':p?'已有积木':'空桥面'}`);if(p)b.style.setProperty('--brick',colors[p.n-1]);b.disabled=busy||!gap;b.onclick=()=>place(i);$('bridge').append(b)}$('pieces').innerHTML='';for(let n=1;n<=3;n++){let b=document.createElement('button');b.className='piece'+(selected===n?' selected':'');b.setAttribute('aria-pressed',selected===n);b.disabled=busy||remaining(n)<=0;b.setAttribute('aria-label',`${n}格长积木，剩余${remaining(n)}块`);b.innerHTML=`<div class="brick" style="--brick:${colors[n-1]};--w:${n*23}px"></div><small>${n} 格长 · ${remaining(n)} 块</small>`;b.onclick=()=>{selected=n;render();message(`选好了 ${n} 格长积木，点一个空格，从那里开始搭。`)};$('pieces').append(b)}$('bridgeCount').textContent=`桥面 ${l.gap.filter(covered).length} / ${l.gap.length} 格已接好`;$('cargoCount').textContent='📦 '+cargo;$('minus').disabled=busy||cargo===0;$('plus').disabled=busy||cargo===9;$('undo').disabled=busy||!placed.length;$('test').disabled=busy;$('hint').disabled=busy;$('mapBtn').disabled=busy;$('freeBtn').disabled=busy;$('rest').disabled=busy;$('parent').disabled=busy;}
+function start(i){clearTimeout(timer);idx=i;data.level=i;placed=[];cargo=0;busy=false;hints=0;selected=levels[i].stock.findIndex(n=>n>0)+1;$('truck').style.transition='none';$('truck').style.left='3%';const l=levels[i];$('levelTitle').textContent=l.title;$('chapter').textContent=`任务 ${i+1} / 6`;$('resident').textContent=l.who;$('avatar').textContent=l.face;$('request').textContent=l.text;$('cargoTarget').textContent=`需要 ${l.need} 箱`;$('sound').textContent=data.sound?'🔊':'🔇';$('sound').setAttribute('aria-pressed',data.sound);$('sound').setAttribute('aria-label',data.sound?'关闭语音':'开启语音');render();message('先看看河上缺了几格，再选一块积木。');save()}
+function place(i){if(busy)return;if(covered(i)){message('这块已经搭好了。想换一种搭法，可以点“拆回一块”。');return}if(remaining(selected)<=0){message('这种积木用完了，选另一种，或者拆回一块。');return}for(let j=i;j<i+selected;j++){if(j>7||!levels[idx].gap.includes(j)||covered(j)){message('这块积木放不下：需要连续的空格。试试换个起点或短一点的积木。');return}}placed.push({start:i,n:selected});render();message('咔哒，接好啦！你可以继续搭，也可以先试着开车。')}
+function open(html){lastFocus=document.activeElement;$('modal').innerHTML=html;$('overlay').hidden=false;$('modal').focus()}
+function close(){if('speechSynthesis'in window)speechSynthesis.cancel();$('overlay').hidden=true;if(lastFocus&&lastFocus.isConnected)lastFocus.focus()}
+function run(){if(busy)return;busy=true;render();const l=levels[idx],hole=l.gap.find(i=>!covered(i));$('truck').style.transition='left 1.6s ease-in-out';$('truck').style.left=hole===undefined?'82%':Math.max(3,18+hole*8-12)+'%';message(hole===undefined?'桥接起来了，小车出发！':'小车慢慢检查桥面……');timer=setTimeout(()=>{busy=false;render();if(hole!==undefined){$('bridge').children[hole].classList.add('mark');message(`小车停在缺口前了。亮起来的地方还没有桥面，补好再试试。`);return}if(cargo!==l.need){message(cargo<l.need?`到了！不过还少 ${l.need-cargo} 箱货物。加好货，再出发。`:`到了！多装了 ${cargo-l.need} 箱，卸下多余的货物再送来吧。`);$('truck').style.left='3%';return}if(!data.done.includes(idx))data.done.push(idx);save();const fx=document.createElement('div');fx.className='confetti';$('scene').append(fx);setTimeout(()=>fx.remove(),1200);open(`<div class="success-icon">${l.icon}</div><div class="eyebrow">小镇因为你，有了新变化</div><h2>${l.title}，完成！</h2><p>你接好了 ${l.gap.length} 格桥面，送来了 ${l.need} 箱货物。<br>想一想：换一种积木，还能搭出来吗？</p><button class="primary" id="next">${idx===5?'🏡 看看我的小镇':'下一位朋友在等你 →'}</button><button class="secondary" id="stop" style="margin-top:10px;width:100%">今天先到这里 🌙</button>`);$('next').onclick=()=>{close();if(idx<5)start(idx+1);else showMap()};$('stop').onclick=rest;say('成功送到了！谢谢你，小工程师。')},1700)}
+function hint(){hints++;const l=levels[idx],hole=l.gap.find(i=>!covered(i));if(hole===undefined){message(`桥已经连起来啦。数一数，车上是不是正好有 ${l.need} 箱货物？`);return}if(hints===1){message('从左往右找一找：哪里还有空格？相邻的空格，可以用一块长积木接起来。');return}let found=null;for(let n=3;n>=1;n--)if(remaining(n)>0&&Array.from({length:n},(_,j)=>hole+j).every(j=>l.gap.includes(j)&&!covered(j))) {found=n;break}if(found){selected=found;render();$('bridge').children[hole].classList.add('mark');message(`试试这块 ${found} 格长积木，从亮起来的空格开始放。`)}else message('剩下的积木暂时放不进这个缺口。拆回一块，试试调整顺序。')}
+function showMap(){open(`<div class="success-icon">🏡</div><h2>我们一起建的小镇</h2><p>已经帮助了 ${data.done.length} 位朋友。点一个地方，随时再去玩。</p><div class="map-grid">${levels.map((l,i)=>`<button class="map-item" data-level="${i}"><span>${data.done.includes(i)?l.icon:'🌱'}</span><small>${l.title}<br>${data.done.includes(i)?'✓ 已点亮':'去帮忙'}</small></button>`).join('')}</div><button class="secondary" id="back">回到工地</button>`);document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>{close();start(Number(b.dataset.level))});$('back').onclick=close}
+function rest(){open('<div class="success-icon">🌙</div><h2>小镇休息啦</h2><p>完成的任务和自由作品已经记住了。<br>这座还没搭完的桥，下次可以重新挑战。<br>也可以找找家里的积木，搭一座让玩具车通过的桥。</p><button class="primary" id="back">回到游戏</button>');$('back').onclick=close}
+function free(){open('<div class="eyebrow">没有标准答案的小工坊</div><h2>你想造什么？</h2><p>选颜色，点格子搭积木；用橡皮擦拆掉。作品自动保存。</p><div class="palette" id="palette"></div><div class="free-grid" id="freeGrid"></div><button class="primary" id="back">收好作品，回到小镇</button>');function draw(){ $('palette').innerHTML='';[...colors,null].forEach(c=>{let b=document.createElement('button');b.className='swatch'+(freeColor===c?' selected':'');b.style.background=c||'#fff';b.textContent=c?'':'⌫';b.setAttribute('aria-label',c?['黄色','红色','绿色','蓝色'][colors.indexOf(c)]+'积木':'橡皮擦');b.setAttribute('aria-pressed',freeColor===c);b.onclick=()=>{freeColor=c;draw()};$('palette').append(b)});$('freeGrid').innerHTML='';data.free.forEach((c,i)=>{let b=document.createElement('button');b.className='free-cell';if(c){b.style.background=c;b.style.boxShadow='inset 0 -4px #0002';b.textContent='••'}b.setAttribute('aria-label',`第${Math.floor(i/8)+1}行，第${i%8+1}列，${c?'有积木':'空白'}`);b.onclick=()=>{data.free[i]=freeColor;save();draw()};$('freeGrid').append(b)})}draw();$('back').onclick=close}
+$('undo').onclick=()=>{if(busy)return;placed.pop();render();message('拆回来了。换个位置或长度，再试一次。')};$('hint').onclick=hint;$('test').onclick=run;$('minus').onclick=()=>{if(!busy&&cargo>0){cargo--;render()}};$('plus').onclick=()=>{if(!busy&&cargo<9){cargo++;render()}};$('mapBtn').onclick=showMap;$('freeBtn').onclick=free;$('rest').onclick=rest;$('speak').onclick=()=>{data.sound=true;updateSound();say(levels[idx].text)};
+function updateSound(){$('sound').textContent=data.sound?'🔊':'🔇';$('sound').setAttribute('aria-pressed',data.sound);$('sound').setAttribute('aria-label',data.sound?'关闭语音':'开启语音');save()}
+$('sound').onclick=()=>{data.sound=!data.sound;updateSound();if(data.sound){if(!('speechSynthesis'in window))message('这个浏览器暂不支持语音，可以看图和文字继续玩。');else say(levels[idx].text)}else if('speechSynthesis'in window)speechSynthesis.cancel()};
+$('parent').onclick=()=>{open('<h2>陪他试，不急着告诉答案</h2><p style="text-align:left">适合约 5—7 岁，在成人陪伴下开始。<br><br>可以问：“你觉得哪里还没接好？”“为什么这块放不下？”让孩子先预测，再试车，然后修改。<br><br>这里提供空间组合、数量对应和尝试改进的练习机会，不代表已经测量或保证能力提升。建议一次玩 1—2 个任务，再用真实积木复现。<br><br>没有广告、付费或签到。进度只保存在当前浏览器，清除网站数据会丢失；语音是否可用取决于设备的中文语音支持。</p><button class="primary" id="back">知道了</button>');$('back').onclick=close};
+document.addEventListener('keydown',e=>{if($('overlay').hidden)return;if(e.key==='Escape')close();if(e.key==='Tab'){const a=[...$('modal').querySelectorAll('button:not(:disabled)')];if(!a.length)return;const first=a[0],last=a[a.length-1];if(e.shiftKey&&(document.activeElement===first||document.activeElement===$('modal'))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||document.activeElement===$('modal'))){e.preventDefault();first.focus()}}});start(idx);
 })();
-</script>
-</body>
-</html>
+</script></body></html>
