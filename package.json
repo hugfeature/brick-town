@@ -1,0 +1,10 @@
+{
+  "name": "brick-town",
+  "private": true,
+  "scripts": {
+    "test": "node tests/game.cjs"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.13"
+  }
+}
