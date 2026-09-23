@@ -24,7 +24,7 @@ const source=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
  const meters=async()=>Number((await page.locator('#distance').innerText()).split('/')[0].trim());
  const carX=()=>page.evaluate(()=>{const c=document.getElementById('game'),ctx=c.getContext('2d'),w=c.width,h=c.height;const pix=ctx.getImageData(0,Math.floor(h*.73),w,Math.floor(h*.12)).data;let sum=0,n=0;for(let i=0;i<pix.length;i+=4)if(pix[i]>200&&pix[i+1]>65&&pix[i+1]<145&&pix[i+2]<110){sum+=(i/4)%w;n++}return n?sum/n:NaN});
  async function load(){await page.goto(url);if(process.env.QA_FONT_CSS){await page.addStyleTag({content:fs.readFileSync(process.env.QA_FONT_CSS,'utf8')});await page.evaluate(()=>document.fonts.ready)} }
- await load();
+ await load();await page.locator('#freeRide').click();
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'mobile horizontal overflow');
  for(const id of ['left','right']){const b=await page.locator('#'+id).boundingBox();assert(b.height>=64&&b.y+b.height<=844,'touch button outside viewport')}
  if(process.env.QA_SHOTS)await page.screenshot({path:path.join(process.env.QA_SHOTS,'racer-ready.png')});
