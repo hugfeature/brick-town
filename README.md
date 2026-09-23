@@ -15,7 +15,7 @@
 
 ## 运行与验证
 
-生产版本只有 `index.html`，Canvas 2D + 原生 JavaScript，无外部字体、图片、网络接口或运行依赖。GitHub Pages 直接托管，无须构建。浏览器需要 Canvas 2D、Pointer Events 和 ResizeObserver 支持。
+生产版本只有 `index.html`，Canvas 2D + 原生 JavaScript，无外部字体、图片、网络接口或运行依赖。GitHub Pages 直接托管，无须构建。浏览器需要 Canvas 2D 和 Pointer Events 支持；不依赖较新的 roundRect 绘图接口，缺少 ResizeObserver 时使用窗口尺寸事件。
 
 自动化回归：
 
@@ -25,7 +25,7 @@ npx playwright install chromium
 npm test
 ```
 
-可通过 `TEST_BROWSER_PATH` 指定已安装的 Chromium。测试启动临时本地 HTTP 服务，使用真实浏览器验证手机布局、触屏左右控制与松手、键盘控制、暂停恢复、切后台保护、三条赛道通关、碰撞与收集、重新开始、存档恢复。测试只接管动画时钟，不在生产页面中暴露修改游戏状态的接口。
+可通过 `TEST_BROWSER_PATH` 指定已安装的 Chromium。启动测试使用真实时钟，覆盖标准浏览器、缺少 roundRect / ResizeObserver 的兼容场景与低帧率场景，验证倒计时结束后车辆确实前进。其余测试启动临时本地 HTTP 服务，使用真实浏览器验证手机布局、触屏左右控制与松手、键盘控制、暂停恢复、切后台保护、三条赛道通关、碰撞与收集、重新开始、存档恢复。测试只接管动画时钟，不在生产页面中暴露修改游戏状态的接口。
 
 ## 陪玩建议与边界
 
