@@ -5,6 +5,6 @@
     "test": "node tests/game.cjs"
   },
   "devDependencies": {
-    "linkedom": "0.18.13"
+    "playwright": "1.62.1"
   }
 }
