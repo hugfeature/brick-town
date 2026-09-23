@@ -15,7 +15,7 @@ const source=fs.readFileSync(process.env.RACER_TEST_SOURCE||path.join(__dirname,
    window.advance=(ms,fps)=>{let remaining=ms;while(remaining>1e-7){const step=Math.min(1000/fps,remaining);time+=step;remaining-=step;const run=frames;frames=[];run.forEach(f=>f(time))}};
    window.fillCount=0;const fill=CanvasRenderingContext2D.prototype.fill;CanvasRenderingContext2D.prototype.fill=function(...args){window.fillCount++;return fill.apply(this,args)};
   });
-  await p.goto(`http://127.0.0.1:${server.address().port}`);await p.locator('#start').click();await p.evaluate(fps=>advance(4000,fps),fps);
+  await p.goto(`http://127.0.0.1:${server.address().port}`);await p.locator('#freeRide').click();await p.locator('#start').click();await p.evaluate(fps=>advance(4000,fps),fps);
   const before=Number((await p.locator('#distance').innerText()).split('/')[0]);
   const metrics=await p.evaluate(async fps=>{
    let changes=0;const observer=new MutationObserver(r=>changes+=r.length);observer.observe(document.querySelector('.hud'),{subtree:true,childList:true,characterData:true,attributes:true});fillCount=0;advance(4000,fps);await Promise.resolve();observer.disconnect();const c=document.getElementById('game');return{changes,fills:fillCount,pixels:c.width*c.height};
