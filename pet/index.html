@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#087f86">
+  <meta name="description" content="认识小狐狸团团：喂食、洗澡、找颜色、睡个好觉。没有广告、不用登录，适合孩子和家长一起玩的电子宠物。">
+  <title>团团的小窝 · 积木小镇</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="pet.css">
+  <meta name="referrer" content="no-referrer">
+  <script type="module" src="pet.js"></script>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <a class="brand" href="https://hugfeature.github.io/brick-town/" aria-label="回到积木小镇赛车"><span class="brand-mark">✿</span><span>积木小镇<small>小小陪伴，大大快乐</small></span></a>
+    <button id="sound" class="quiet-button" aria-pressed="false" aria-label="打开声音">♫ <span>声音关</span></button>
+  </header>
+  <div class="layout">
+    <section class="playhouse" aria-label="团团的小窝">
+      <div class="room-top"><div><p class="eyebrow">我的动物朋友</p><h1><span id="petName">团团</span>的小窝 <button id="rename" class="rename" aria-label="给小狐狸改名字">✎</button></h1></div><span id="roomState" class="room-state">☀ 醒着呢</span></div>
+      <div class="needs" aria-label="宠物状态">
+        <div class="need food-need"><div><span>🍎 饱饱</span><strong id="foodValue">75</strong></div><progress id="foodBar" max="100" value="75" aria-label="饱饱"></progress></div>
+        <div class="need clean-need"><div><span>🫧 干净</span><strong id="cleanValue">70</strong></div><progress id="cleanBar" max="100" value="70" aria-label="干净"></progress></div>
+        <div class="need joy-need"><div><span>💛 开心</span><strong id="joyValue">80</strong></div><progress id="joyBar" max="100" value="80" aria-label="开心"></progress></div>
+        <div class="need energy-need"><div><span>⚡ 精神</span><strong id="energyValue">75</strong></div><progress id="energyBar" max="100" value="75" aria-label="精神"></progress></div>
+      </div>
+      <div id="scene" class="scene">
+        <p id="speech" class="speech" role="status" aria-live="polite">你好呀！点点我，抱一下。</p>
+        <div class="pet-space">
+          <div class="pet-halo" aria-hidden="true"></div>
+          <button class="pet" id="pet" aria-label="摸摸小狐狸"><img src="assets/fox.webp" width="1024" height="1024" alt="戴着青绿色小围巾、微笑着的毛绒小狐狸" draggable="false"><span class="pet-fallback" hidden>🦊</span></button>
+          <div id="effects" class="effects" aria-hidden="true"></div>
+          <div id="bubbles" class="bubbles" hidden></div>
+          <span id="sleepMark" class="sleep-mark" hidden aria-hidden="true">z Z z</span>
+        </div>
+        <div id="sceneHint" class="scene-hint">轻轻点一点，团团会很开心</div>
+        <button id="cancelBath" class="cancel-bath" hidden>先不洗了</button>
+      </div>
+      <div class="action-deck" aria-label="照顾小狐狸">
+        <button id="feed" class="action feed"><span>🍎</span><strong>喂一喂</strong><small>吃点好吃的</small></button>
+        <button id="bath" class="action bath"><span>🛁</span><strong>洗香香</strong><small>戳掉小泡泡</small></button>
+        <button id="play" class="action play"><span>🎨</span><strong>一起玩</strong><small>找找颜色</small></button>
+        <button id="sleep" class="action sleep"><span id="sleepIcon">🌙</span><strong id="sleepLabel">睡一会</strong><small id="sleepHint">充充小电池</small></button>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="friendship"><span class="heart-icon" aria-hidden="true">♥</span><p class="eyebrow">我们的友谊</p><h2 id="bondTitle">刚认识的好朋友</h2><p id="bondMessage">每一次陪伴，都算数。</p><div class="bond-track" id="bondHearts" aria-label="陪伴进度"></div><span class="care-count">已经一起做了 <strong id="careCount">0</strong> 件小事</span></section>
+      <section class="memories"><h2>一起做过的事 <span>✧</span></h2><p>慢慢来，想玩哪个都可以。</p><div id="stickers" class="stickers"><div data-sticker="feed"><span>🍎</span><b>一起吃饭</b><small>还没试过</small></div><div data-sticker="bath"><span>🫧</span><b>洗个香香</b><small>还没试过</small></div><div data-sticker="play"><span>🌈</span><b>找对颜色</b><small>还没试过</small></div><div data-sticker="sleep"><span>🌙</span><b>好好休息</b><small>还没试过</small></div></div></section>
+      <a href="https://hugfeature.github.io/brick-town/" class="racer-link"><span>🏎️</span><span><b>去小镇兜兜风</b><small>也可以找小熊送苹果</small></span><span>↗</span></a>
+    </aside>
+  </div>
+  <footer><button id="sync" class="sync-status" aria-label="重新连接云端"><span id="saveStatus" role="status">正在连接小窝…</span></button><div><button id="share" class="text-button">换手机接着玩</button><button id="parents" class="text-button">给爸爸妈妈</button></div></footer>
+</main>
+<dialog id="dialog" aria-labelledby="dialogTitle"><button id="closeDialog" class="close-dialog" aria-label="关闭弹窗">×</button><div id="dialogContent"></div></dialog>
+<noscript><p class="no-script">打开浏览器的 JavaScript 后，就能和团团一起玩了。</p></noscript>
+</body></html>
