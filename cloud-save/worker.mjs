@@ -1,6 +1,6 @@
 import {freshPet,changePet} from './state.mjs';
 
-const SITE_ORIGIN='https://little-fox-playhouse.tuned-rat-6518.chatgpt.site';
+const SITE_ORIGIN='https://little-fox-playhouse.wangwang19920321.chatgpt.site';
 const ALLOWED_ORIGINS=new Set(['https://hugfeature.github.io',SITE_ORIGIN,'http://terminal.local:4173']);
 const noCache={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
 

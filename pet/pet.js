@@ -1,7 +1,7 @@
 import {freshPet,normalizePet,energyNow} from './state.mjs';
 
 const $=id=>document.getElementById(id);
-const API_ORIGIN='https://little-fox-playhouse.tuned-rat-6518.chatgpt.site';
+const API_ORIGIN='https://little-fox-playhouse.wangwang19920321.chatgpt.site';
 const API_URL=(location.hostname==='terminal.local'||location.origin===API_ORIGIN?'':API_ORIGIN)+'/api/pet';
 const TOKEN_KEY='brickTownPetFamilyV1';
 const SOUND_KEY='brickTownPetSoundV1';
