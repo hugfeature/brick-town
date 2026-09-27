@@ -9,7 +9,7 @@ const tokenPattern=/^[a-f0-9]{48}$/;
 const dialog=$('dialog');
 let pet=freshPet(),revision=0,token='',ready=false,busy=false,syncing=false,mode='',sound=false,audio=null;
 let bubbleCount=0,bathComplete=false,round=0,target=0,answered=false,gameComplete=false,petTapped=0,lastFocus=null;
-let pending=null;
+let pending=null,lastSyncError=0;
 const colors=[{name:'红色',color:'#d95e59'},{name:'蓝色',color:'#4687cd'},{name:'黄色',color:'#b58a12'}];
 function randomKey(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('')}
 function requestId(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('')}
@@ -41,15 +41,15 @@ async function api(method='GET',body){
     const response=await fetch(API_URL,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal,credentials:'omit'});
     let data;try{data=await response.json()}catch{throw new Error('云端还没连上，请稍后点“重新连接”。')}
     if(!response.ok){const e=new Error(data.error||'暂时没连上云端');e.status=response.status;e.data=data;throw e}return data;
-  }finally{clearTimeout(timer)}
+  }catch(error){if(error.name==='AbortError'||error instanceof TypeError)throw new Error('网络暂时没连上，请稍后再试。');throw error}finally{clearTimeout(timer)}
 }
 async function refresh(manual=false){
   if(!token||busy||syncing)return;syncing=true;
   if(manual)status('正在同步…');
   try{
-    const before=revision;const data=await api();setState(data);ready=true;status('☁ 已同步到云端');
+    const before=revision;const data=await api();setState(data);ready=true;lastSyncError=0;status('☁ 已同步到云端');
     if(manual)say(pet.sleeping?'嘘，'+pet.name+'正在做美梦。':before&&revision>before?'家人刚刚照顾过我，已经同步啦！':'小窝同步好了，一起玩吧。');
-  }catch(e){ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
+  }catch(e){lastSyncError=e.status||0;ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
   finally{syncing=false;render()}
 }
 async function act(action,value){
@@ -66,7 +66,7 @@ async function act(action,value){
 async function reconnect(){
   if(!token){welcome();return}
   // Retry only this exact last request: requestId + revision prevent duplicate/overwriting progress.
-  if(pending&&!busy){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else{say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else await refresh(true);
+  if(pending&&!busy){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else{say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
 }
 function chime(notes=[523,659,784]){
   if(!sound||document.hidden)return;
@@ -144,7 +144,7 @@ async function init(){
   const match=location.hash.match(/^#home=([a-f0-9]{48})$/);
   if(match)token=match[1];else if(!location.hash){try{const stored=localStorage.getItem(TOKEN_KEY);if(tokenPattern.test(stored||''))token=stored}catch{}}
   render();
-  if(token){remember();await refresh(true);if(!ready){say('还没连接到小窝，点下方“重连”再试。');status('小窝未连接 · 点这里重连',true)}}
+  if(token){remember();await refresh(true);if(!ready){say('还没连接到小窝，点下方“重连”再试。');status('小窝未连接 · 点这里重连',true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}}
   else{status('领养后自动保存到云端');welcome(location.hash?'家庭链接不完整，请让家人重新发一次。':'给团团一个家，开始一起玩吧。')}
 }
 init();
