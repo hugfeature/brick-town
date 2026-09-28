@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#087f86">
-  <meta name="description" content="认识小狐狸团团：喂食、洗澡、找颜色、睡个好觉。没有广告、不用登录，适合孩子和家长一起玩的电子宠物。">
+  <meta name="description" content="认识小狐狸团团：喂食、洗澡、找颜色、数星星、翻牌配对，完成任务攒积分，兑换宠物互动。没有广告、不用登录，适合孩子和家长一起玩的电子宠物。">
   <title>团团的小窝 · 积木小镇</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="pet.css">
+  <link rel="stylesheet" href="pet.css?v=parents1">
   <meta name="referrer" content="no-referrer">
-  <script type="module" src="pet.js"></script>
+  <script type="module" src="pet.js?v=parents1"></script>
 </head>
 <body>
 <main class="app">
@@ -38,13 +38,30 @@
         <button id="cancelBath" class="cancel-bath" hidden>先不洗了</button>
       </div>
       <div class="action-deck" aria-label="照顾小狐狸">
-        <button id="feed" class="action feed"><span>🍎</span><strong>喂一喂</strong><small>吃点好吃的</small></button>
-        <button id="bath" class="action bath"><span>🛁</span><strong>洗香香</strong><small>戳掉小泡泡</small></button>
-        <button id="play" class="action play"><span>🎨</span><strong>一起玩</strong><small>找找颜色</small></button>
+        <button id="feed" class="action feed"><span>🍎</span><strong>喂一喂</strong><small data-reward="feed"></small></button>
+        <button id="bath" class="action bath"><span>🛁</span><strong>洗香香</strong><small data-reward="bath"></small></button>
+        <button id="play" class="action play"><span>🎨</span><strong>找颜色</strong><small data-reward="play"></small></button>
         <button id="sleep" class="action sleep"><span id="sleepIcon">🌙</span><strong id="sleepLabel">睡一会</strong><small id="sleepHint">充充小电池</small></button>
       </div>
+      <section class="more-play" aria-labelledby="moreTitle">
+        <div class="section-heading"><h2 id="moreTitle">再陪团团玩一会</h2><span>攒积分，选喜欢的</span></div>
+        <button id="resumeActivity" class="primary resume-activity" hidden>继续已兑换的互动</button>
+        <div class="extra-actions">
+          <button id="count" class="extra-action"><span>⭐</span><strong>数星星</strong><small data-reward="count"></small></button>
+          <button id="memory" class="extra-action"><span>🃏</span><strong>翻翻配对</strong><small data-reward="memory"></small></button>
+          <button id="dance" class="extra-action"><span>🎵</span><strong>跳个舞</strong><small data-reward="dance"></small></button>
+        </div>
+      </section>
     </section>
     <aside class="side">
+      <section class="points-card" aria-labelledby="pointsTitle">
+        <div class="section-heading"><h2 id="pointsTitle">我的星星积分</h2><button id="rules" class="text-button">积分规则</button></div>
+        <div class="points-total"><span aria-hidden="true">⭐</span><strong id="points">0</strong><span>分</span></div>
+        <p id="earnedTotal">一件小事，一点收获</p>
+        <button id="parentPoints" class="primary">🔐 家长确认 / 发积分</button>
+        <button id="history" class="rest-button">看看积分记录</button>
+      </section>
+      <section class="daily-card" aria-labelledby="dailyTitle"><div class="section-heading"><h2 id="dailyTitle">我的任务卡</h2><span id="dailyCount">0 / 3</span></div><p id="dailyMessage">完成后由爸爸妈妈确认发积分</p><div id="dailyTasks" class="daily-tasks"></div><p class="daily-note">现实中完成任务，由家长确认；点这里不会自动领分。</p></section>
       <section class="friendship"><span class="heart-icon" aria-hidden="true">♥</span><p class="eyebrow">我们的友谊</p><h2 id="bondTitle">刚认识的好朋友</h2><p id="bondMessage">每一次陪伴，都算数。</p><div class="bond-track" id="bondHearts" aria-label="陪伴进度"></div><span class="care-count">已经一起做了 <strong id="careCount">0</strong> 件小事</span></section>
       <section class="memories"><h2>一起做过的事 <span>✧</span></h2><p>慢慢来，想玩哪个都可以。</p><div id="stickers" class="stickers"><div data-sticker="feed"><span>🍎</span><b>一起吃饭</b><small>还没试过</small></div><div data-sticker="bath"><span>🫧</span><b>洗个香香</b><small>还没试过</small></div><div data-sticker="play"><span>🌈</span><b>找对颜色</b><small>还没试过</small></div><div data-sticker="sleep"><span>🌙</span><b>好好休息</b><small>还没试过</small></div></div></section>
       <a href="https://hugfeature.github.io/brick-town/" class="racer-link"><span>🏎️</span><span><b>去小镇兜兜风</b><small>也可以找小熊送苹果</small></span><span>↗</span></a>
@@ -52,6 +69,7 @@
   </div>
   <footer><button id="sync" class="sync-status" aria-label="重新连接云端"><span id="saveStatus" role="status">正在连接小窝…</span></button><div><button id="share" class="text-button">换手机接着玩</button><button id="parents" class="text-button">给爸爸妈妈</button></div></footer>
 </main>
+<div id="rewardToast" class="reward-toast" role="status" aria-live="polite" hidden></div>
 <dialog id="dialog" aria-labelledby="dialogTitle"><button id="closeDialog" class="close-dialog" aria-label="关闭弹窗">×</button><div id="dialogContent"></div></dialog>
 <noscript><p class="no-script">打开浏览器的 JavaScript 后，就能和团团一起玩了。</p></noscript>
 </body></html>

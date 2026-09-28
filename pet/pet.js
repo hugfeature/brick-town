@@ -1,4 +1,5 @@
 import {freshPet,normalizePet,energyNow} from './state.mjs';
+import {RULES,TASKS,taskState} from './rules.mjs';
 
 const $=id=>document.getElementById(id);
 const API_ORIGIN='https://little-fox-playhouse.wangwang19920321.chatgpt.site';
@@ -9,7 +10,8 @@ const tokenPattern=/^[a-f0-9]{48}$/;
 const dialog=$('dialog');
 let pet=freshPet(),revision=0,token='',ready=false,busy=false,syncing=false,mode='',sound=false,audio=null;
 let bubbleCount=0,bathComplete=false,round=0,target=0,answered=false,gameComplete=false,petTapped=0,lastFocus=null;
-let pending=null,lastSyncError=0;
+let pending=null,lastSyncError=0,toastTimer;
+let rewardMessage='';
 const colors=[{name:'红色',color:'#d95e59'},{name:'蓝色',color:'#4687cd'},{name:'黄色',color:'#b58a12'}];
 function randomKey(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('')}
 function requestId(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('')}
@@ -25,9 +27,20 @@ function render(){
   $('roomState').textContent=pet.sleeping?'☾ 睡着啦':'☀ 醒着呢';
   $('sleepMark').hidden=!pet.sleeping;$('sleepIcon').textContent=pet.sleeping?'☀️':'🌙';
   $('sleepLabel').textContent=pet.sleeping?'起床啦':'睡一会';$('sleepHint').textContent=pet.sleeping?'轻轻叫醒它':'充充小电池';
-  for(const id of ['feed','bath','play','pet']) $(id).disabled=!ready||busy||pet.sleeping||mode==='bath';
+  for(const id of ['feed','bath','play','pet','count','memory','dance']) $(id).disabled=!ready||busy||pet.sleeping||mode==='bath';
   $('sleep').disabled=!ready||busy||mode==='bath';$('rename').disabled=!ready||busy;$('share').disabled=!token;
   $('sceneHint').textContent=mode==='bath'?`还剩 ${bubbleCount} 个泡泡，点一点`:(pet.sleeping?'可以关掉网页，让团团安心休息':'轻轻点一点，'+pet.name+'会很开心');
+  $('parentPoints').disabled=!ready||busy;
+  const today=taskState(pet);
+  $('points').textContent=pet.points;
+  $('earnedTotal').textContent='家长累计奖励 '+pet.totalPoints+' 分';
+  $('dailyCount').textContent=today.done.length+' / '+Object.keys(TASKS).length;
+  $('dailyMessage').textContent='完成后请爸爸妈妈确认，积分才会到账。';
+  $('dailyTasks').replaceChildren(...Object.entries(TASKS).map(([key,task])=>{const el=document.createElement('div');const done=today.done.includes(key);el.className=done?'done':'';el.textContent=(done?'✓ ':task.icon+' ')+task.label+' · '+(done?'已奖励': '+'+task.points+' 分');return el}));
+  document.querySelectorAll('[data-reward]').forEach(el=>{const rule=RULES[el.dataset.reward];el.textContent=rule.cost+' 分兑换';});
+  $('sleepHint').textContent='免费休息';
+  $('resumeActivity').hidden=!pet.activity;$('resumeActivity').disabled=!ready||busy||pet.sleeping||mode==='bath';
+  if(pet.activity)$('resumeActivity').textContent='继续'+RULES[pet.activity.action].label+' · 已兑换，不再扣分';
   $('careCount').textContent=pet.care;
   $('bondTitle').textContent=pet.care<4?'刚认识的好朋友':pet.care<12?'越来越有默契':'最亲密的小伙伴';
   $('bondMessage').textContent=pet.care>=12?'和你在一起，就很开心。':'每一次陪伴，都算数。';
@@ -52,13 +65,14 @@ async function refresh(manual=false){
   }catch(e){lastSyncError=e.status||0;ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
   finally{syncing=false;render()}
 }
-async function act(action,value){
+async function act(action,value,pin){
   if(busy||!ready)return false;busy=true;render();status('正在保存…');
-  const body={action,value,revision,requestId:requestId()};pending=body;
+  const body={action,value,revision,requestId:requestId(),...(pin?{pin}:{})};pending=body;const before=pet.points;
   try{
-    const data=await api('POST',body);setState(data);pending=null;status('☁ 已保存到云端');return true;
+    const data=await api('POST',body);setState(data);pending=null;status('☁ 已保存到云端');rewardMessage='';const delta=pet.points-before;if(delta!==0){rewardMessage=delta>0?'⭐ 家长奖励 +'+delta+' 分':'已兑换，使用 '+(-delta)+' 分';showReward(rewardMessage)}return true;
   }catch(e){
     if(e.status===409){setState(e.data);pending=null;status('☁ 已同步家人的操作');say(e.message)}
+    else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;status('☁ 已连接云端');say(e.message);showReward(e.message)}
     else{ready=false;status('保存未确认 · 点这里重连',true);say('网络暂时断开了，先重新连接小窝。')}
     return false;
   }finally{busy=false;render()}
@@ -66,7 +80,7 @@ async function act(action,value){
 async function reconnect(){
   if(!token){welcome();return}
   // Retry only this exact last request: requestId + revision prevent duplicate/overwriting progress.
-  if(pending&&!busy){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else{say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
+  if(pending&&!busy){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;ready=true;status('☁ 已连接云端');say(e.message)}else{say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
 }
 function chime(notes=[523,659,784]){
   if(!sound||document.hidden)return;
@@ -80,7 +94,7 @@ function openDialog(html){lastFocus=document.activeElement;$('dialogContent').in
 function closeDialog(){if(busy)return;dialog.close();mode='';render();lastFocus?.focus()}
 $('closeDialog').onclick=closeDialog;
 dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault()});
-dialog.addEventListener('close',()=>{if(mode==='game')mode='';render()});
+dialog.addEventListener('close',()=>{document.querySelectorAll('input[type=password]').forEach(x=>x.value='');if(mode==='game')mode='';render()});
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog()}});
 function welcome(message='给团团一个家，开始一起玩吧。'){
   openDialog('<div class="dialog-icon">🦊</div><h2 id="dialogTitle">认识一下，我是团团</h2><p id="welcomeMessage"></p><button class="primary" id="adopt">领养团团</button><button class="rest-button" id="joinHome">已经有小窝？打开家庭链接</button>');
@@ -100,14 +114,14 @@ function joinDialog(){
   $('joinForm').onsubmit=async e=>{e.preventDefault();if(busy)return;const match=$('homeLink').value.trim().match(/#home=([a-f0-9]{48})$/);if(!match){$('joinError').textContent='链接不完整，请重新复制家人发来的链接。';return}busy=true;const old=token;token=match[1];try{const d=await api();revision=0;setState(d);ready=true;remember();pending=null;status('☁ 已同步到云端');busy=false;closeDialog();say('你回来啦！')}catch(err){token=old;$('joinError').textContent=err.message}finally{busy=false;render()}};
 }
 $('feed').onclick=()=>{
-  openDialog('<div class="dialog-icon">🍽️</div><h2 id="dialogTitle">今天吃点什么？</h2><p>选一个，喂给小狐狸。</p><div class="food-options"><button class="food-option" data-food="apple"><span>🍎</span>小苹果</button><button class="food-option" data-food="carrot"><span>🥕</span>胡萝卜</button><button class="food-option" data-food="fish"><span>🐟</span>小鱼干</button></div>');
-  document.querySelectorAll('[data-food]').forEach(b=>b.onclick=async()=>{if(busy||!ready)return;document.querySelectorAll('[data-food]').forEach(x=>x.disabled=true);const ok=await act('feed',b.dataset.food);closeDialog();if(ok){say(pet.food>=95?'肚子饱饱的，谢谢你！':'啊呜，好好吃呀！');celebrate(b.querySelector('span').textContent)}});
+  openDialog('<div class="dialog-icon">🍽️</div><h2 id="dialogTitle">今天吃点什么？</h2><p id="feedMessage">每份需要 '+RULES.feed.cost+' 分，选好食物后扣分。<br>现在有 '+pet.points+' 分。</p><div class="food-options"><button class="food-option" data-food="apple"><span>🍎</span>小苹果</button><button class="food-option" data-food="carrot"><span>🥕</span>胡萝卜</button><button class="food-option" data-food="fish"><span>🐟</span>小鱼干</button></div>');
+  document.querySelectorAll('[data-food]').forEach(b=>b.onclick=async()=>{if(busy||!ready)return;if(pet.points<RULES.feed.cost){$('feedMessage').textContent='积分还不够，请爸爸妈妈确认任务后发积分。';return}document.querySelectorAll('[data-food]').forEach(x=>x.disabled=true);const ok=await act('feed',b.dataset.food);closeDialog();if(ok){say(pet.food>=95?'肚子饱饱的，谢谢你！':'啊呜，好好吃呀！');celebrate(b.querySelector('span').textContent)}});
 };
 function cancelBath(){mode='';$('bubbles').hidden=true;$('bubbles').replaceChildren();$('cancelBath').hidden=true;document.querySelector('.playhouse').classList.remove('bath-mode');render()}
 $('cancelBath').onclick=()=>{cancelBath();say('我们等会儿再洗，也可以。')};
 $('bath').onclick=()=>{
   if(!ready||busy)return;mode='bath';bubbleCount=5;bathComplete=false;$('bubbles').hidden=false;$('cancelBath').hidden=false;document.querySelector('.playhouse').classList.add('bath-mode');say('把 5 个小泡泡点掉，洗香香！');
-  [[14,18],[65,17],[36,40],[9,66],[70,64]].forEach(([x,y],i)=>{const b=document.createElement('button');b.className='bubble';b.setAttribute('aria-label','小泡泡 '+(i+1));b.textContent='✧';b.style.left=x+'%';b.style.top=y+'%';b.style.setProperty('--delay',i*.17+'s');b.onclick=async()=>{if(b.disabled||bathComplete)return;b.disabled=true;b.remove();bubbleCount--;chime([650+i*70]);render();if(!bubbleCount){bathComplete=true;const ok=await act('bath');cancelBath();if(ok){say('洗得干干净净，香香的！');celebrate('🫧')}}};$('bubbles').append(b)});render();
+  [[14,18],[65,17],[36,40],[9,66],[70,64]].forEach(([x,y],i)=>{const b=document.createElement('button');b.className='bubble';b.setAttribute('aria-label','小泡泡 '+(i+1));b.textContent='✧';b.style.left=x+'%';b.style.top=y+'%';b.style.setProperty('--delay',i*.17+'s');b.onclick=async()=>{if(b.disabled||bathComplete)return;b.disabled=true;b.remove();bubbleCount--;chime([650+i*70]);render();if(!bubbleCount){bathComplete=true;const ok=await completeActivity();cancelBath();if(ok){say('洗得干干净净，香香的！');celebrate('🫧')}}};$('bubbles').append(b)});render();
 };
 $('pet').onclick=async()=>{if(Date.now()-petTapped<1000)return;petTapped=Date.now();if(await act('pet')){say(['嘿嘿，有一点点痒！','最喜欢你的抱抱了。','和你在一起真开心！'][Math.floor(Math.random()*3)]);celebrate()}};
 $('sleep').onclick=async()=>{const waking=pet.sleeping;if(await act(waking?'wake':'sleep')){say(waking?'早安！想和我做点什么？':'晚安，睡醒了再一起玩。');if(waking)celebrate('☀️');else chime([392,330,262])}};
@@ -117,7 +131,7 @@ function showRound(){
   openDialog('<div class="dialog-icon">🎨</div><h2 id="dialogTitle">一起找颜色</h2><div class="round-count">'+Array.from({length:3},(_,i)=>i<round?'★':'☆').join(' ')+'</div><p>请点一下 <b class="target-color" style="background:'+colors[target].color+'">'+colors[target].name+'</b></p><div class="color-options">'+order.map(i=>'<button class="color-choice" style="background:'+colors[i].color+'" data-color="'+i+'" aria-label="'+colors[i].name+'色块">'+colors[i].name+'</button>').join('')+'</div><p id="gameFeedback" class="game-feedback" role="status">慢慢找，不用抢时间。</p>');
   document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{if(answered||busy)return;if(Number(b.dataset.color)!==target){$('gameFeedback').textContent='这是'+colors[Number(b.dataset.color)].name+'，再找找'+colors[target].name+'吧。';chime([392]);return}answered=true;round++;chime();$('gameFeedback').textContent='找对啦！';document.querySelectorAll('[data-color]').forEach(x=>x.disabled=true);const next=document.createElement('button');next.className='primary';next.textContent=round===3?'完成啦，抱抱团团':'下一个颜色';next.onclick=round===3?finishGame:showRound;$('dialogContent').append(next)});
 }
-async function finishGame(){if(gameComplete||busy)return;gameComplete=true;const ok=await act('play');if(!ok){closeDialog();return}openDialog('<div class="game-finish">🌈</div><h2 id="dialogTitle">三个颜色，都找到啦！</h2><p>谢谢你陪我玩，真开心。<br>也找找身边相同颜色的东西吧。</p><button class="primary" id="finishGame">回到小窝</button>');$('finishGame').onclick=()=>{closeDialog();say('你观察得好仔细，我好开心！');celebrate('🌈')};}
+async function finishGame(){if(gameComplete||busy)return;gameComplete=true;if(!await completeActivity()){closeDialog();return}openDialog('<div class="game-finish">🌈</div><h2 id="dialogTitle">三个颜色，都找到啦！</h2><p>谢谢你陪我玩，真开心。<br>也找找身边相同颜色的东西吧。</p><p class="reward-result" id="gameReward"></p><button class="primary" id="finishGame">回到小窝</button>');$('gameReward').textContent='本次互动已兑换，不会再次扣分。';$('finishGame').onclick=()=>{closeDialog();say('你观察得好仔细，我好开心！');celebrate('🌈')};}
 $('play').onclick=()=>{mode='game';round=0;gameComplete=false;showRound()};
 $('rename').onclick=()=>{
   openDialog('<div class="dialog-icon">✏️</div><h2 id="dialogTitle">给小狐狸起个名字</h2><form id="renameForm" class="rename-form"><label for="nameInput">名字（最多 8 个字）</label><input id="nameInput" maxlength="16" required autocomplete="off"><p id="nameError" class="error-note"></p><button class="primary">就叫这个名字</button></form>');$('nameInput').value=pet.name;
@@ -130,9 +144,10 @@ $('share').onclick=()=>{
   openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">换手机，也在同一个家</h2><p>把这个链接发给家人，在另一部手机打开，就能接着玩。</p><div class="rename-form"><label for="shareLink">家庭专属链接</label><input id="shareLink" readonly><button class="primary" id="copyLink">复制家庭链接</button></div><p id="copyStatus" class="share-note">拿到链接的人都能照顾这只宠物，只发给家人哦。</p>');$('shareLink').value=familyURL();$('shareLink').onclick=()=>{$('shareLink').select()};$('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(familyURL());$('copyStatus').textContent='复制好了，发给家人或保存到收藏吧。'}catch{$('shareLink').focus();$('shareLink').select();$('copyStatus').textContent='请长按上面的链接，选择“复制”。'}};
 };
 $('parents').onclick=()=>{
-  openDialog('<div class="dialog-icon">🌱</div><h2 id="dialogTitle">给爸爸妈妈</h2><p class="parent-copy">适合约 <b>5～7 岁</b>孩子独立点按，也可以陪低龄孩子一起体验。找颜色提供观察练习，照顾宠物提供表达关心的机会，不是能力测评。</p><p class="parent-copy">没有广告、付费、签到或死亡惩罚。离开时不会扣状态，睡觉能恢复精神，随时可以结束。</p><p class="parent-copy">进度保存在云端。<b>换手机请打开同一个家庭链接</b>，不要重新领养。两台手机一起玩时会同步，网络中断会暂停修改。请收藏家庭链接，丢失后不能凭名字找回。</p><button class="primary" id="parentsDone">知道了，回到小窝</button>');$('parentsDone').onclick=closeDialog;
+  openDialog('<div class="dialog-icon">🌱</div><h2 id="dialogTitle">给爸爸妈妈</h2><p class="parent-copy">适合约 <b>5～7 岁</b>孩子独立点按，也可以陪低龄孩子一起体验。找颜色提供观察练习，照顾宠物提供表达关心的机会，数星星和配对也可以慢慢尝试，不是能力测评。</p><p class="parent-copy">没有广告、付费、签到或死亡惩罚。完成现实中的任务后，由家长输入密码发积分；孩子用积分兑换互动，不花真钱。摸摸、睡觉和叫醒免费。请由家长先设置密码，再把家庭链接交给孩子。离开时不会扣状态，睡觉能恢复精神，随时可以结束。</p><p class="parent-copy">进度保存在云端。<b>换手机请打开同一个家庭链接</b>，不要重新领养。两台手机一起玩时会同步，网络中断会暂停修改。请收藏家庭链接，丢失后不能凭名字找回。</p><button class="primary" id="parentsDone">知道了，回到小窝</button>');$('parentsDone').onclick=closeDialog;
 };
 $('sync').onclick=reconnect;
+setInterval(()=>{if(!document.hidden)render()},60000);
 document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.hidden)audio?.suspend().catch(()=>{});else if(!pending)refresh();});
 window.addEventListener('online',()=>{reconnect()});window.addEventListener('offline',()=>{ready=false;render();status('离线了 · 连网后接着玩',true)});
 window.addEventListener('hashchange',()=>{location.reload()});
@@ -154,4 +169,98 @@ if(document.modelContext?.registerTool){
  const lifecycle=new AbortController();
  try{Promise.resolve(document.modelContext.registerTool({name:'get_pet_status',title:'查看宠物状态',description:'Read this family pet’s currently displayed state and cloud connection, without changing it.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:()=>({pet:{...pet,energy:energyNow(pet)},revision,connected:ready,saving:busy})},{signal:lifecycle.signal})).catch(()=>{})}catch{}
  window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
+}
+
+function showReward(message){
+  clearTimeout(toastTimer);$('rewardToast').textContent=message;$('rewardToast').hidden=false;
+  toastTimer=setTimeout(()=>{$('rewardToast').hidden=true},4200);
+}
+function shuffle(items){const a=[...items];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+async function finishActivity(action,title,icon){
+  if(gameComplete||busy)return;gameComplete=true;
+  if(!await completeActivity()){closeDialog();return}
+  openDialog('<div class="game-finish">'+icon+'</div><h2 id="dialogTitle">'+title+'</h2><p class="reward-result" id="activityReward"></p><p>谢谢你陪我玩！休息一下也很好。</p><button class="primary" id="activityDone">回到小窝</button>');
+  $('activityReward').textContent='本次互动已兑换，不会再次扣分。';
+  $('activityDone').onclick=()=>{closeDialog();say('有你陪我，真开心！');celebrate(icon)};
+}
+$('count').onclick=()=>{
+  mode='game';gameComplete=false;let completed=0;
+  function next(){
+    const n=1+Math.floor(Math.random()*5);let locked=false;
+    openDialog('<div class="dialog-icon">⭐</div><h2 id="dialogTitle">一共有几颗星星？</h2><p>第 '+(completed+1)+' / 3 题 · 一颗一颗慢慢数</p><div class="count-stars" aria-label="'+n+' 颗星星">'+Array(n).fill('<span aria-hidden="true">⭐</span>').join('')+'</div><div class="number-options">'+[1,2,3,4,5].map(x=>'<button class="number-choice" data-number="'+x+'">'+x+'</button>').join('')+'</div><p id="countFeedback" class="game-feedback" role="status">数好了，点下面的数字。</p>');
+    document.querySelectorAll('[data-number]').forEach(b=>b.onclick=()=>{
+      if(locked||busy)return;
+      if(Number(b.dataset.number)!==n){$('countFeedback').textContent='再数一遍吧，不着急。';return}
+      locked=true;completed++;chime();$('countFeedback').textContent='对啦，一共 '+n+' 颗！';
+      document.querySelectorAll('[data-number]').forEach(x=>x.disabled=true);
+      const button=document.createElement('button');button.className='primary';button.textContent=completed===3?'完成啦':'再数一次';button.onclick=completed===3?()=>finishActivity('count','三次数数，都完成啦！','⭐'):next;$('dialogContent').append(button);
+    });
+  }next();
+};
+$('memory').onclick=()=>{
+  mode='game';gameComplete=false;const cards=shuffle(['🍎','🍎','🌼','🌼','🐟','🐟']);let selected=[],pairs=0,locked=false;
+  openDialog('<div class="dialog-icon">🃏</div><h2 id="dialogTitle">找出一样的好朋友</h2><p>翻开两张卡，找到 3 对。没有次数限制。</p><div class="memory-grid">'+cards.map((_,i)=>'<button class="memory-card" data-card="'+i+'" aria-label="翻开第 '+(i+1)+' 张卡">?</button>').join('')+'</div><p id="memoryFeedback" class="game-feedback" role="status">先选一张吧。</p><button class="primary" id="memoryNext" hidden>盖好，再找一对</button>');
+  const buttons=[...document.querySelectorAll('[data-card]')];
+  buttons.forEach((b,i)=>b.onclick=()=>{
+    if(locked||selected.includes(i)||b.disabled)return;
+    b.textContent=cards[i];b.setAttribute('aria-label','第 '+(i+1)+' 张：'+cards[i]);b.classList.add('revealed');selected.push(i);
+    if(selected.length<2){$('memoryFeedback').textContent='再选一张，找一样的。';return}
+    if(cards[selected[0]]===cards[selected[1]]){
+      selected.forEach(x=>{buttons[x].disabled=true;buttons[x].classList.add('matched')});pairs++;selected=[];chime();$('memoryFeedback').textContent='找到 '+pairs+' / 3 对啦！';
+      if(pairs===3){locked=true;$('memoryNext').hidden=false;$('memoryNext').textContent='配对完成啦';$('memoryNext').onclick=()=>finishActivity('memory','三对好朋友，都找到啦！','🌼')}
+    }else{
+      locked=true;$('memoryFeedback').textContent='不一样，记住它们的位置再试试。';$('memoryNext').hidden=false;
+      $('memoryNext').onclick=()=>{selected.forEach(x=>{buttons[x].textContent='?';buttons[x].classList.remove('revealed');buttons[x].setAttribute('aria-label','翻开第 '+(x+1)+' 张卡')});selected=[];locked=false;$('memoryNext').hidden=true;$('memoryFeedback').textContent='再找一对吧。'};
+    }
+  });
+};
+$('dance').onclick=()=>{
+  mode='game';gameComplete=false;let step=0;const moves=shuffle([{icon:'👏',label:'拍拍手'},{icon:'🙌',label:'举高手'},{icon:'👋',label:'挥挥手'}]);
+  function next(){
+    const move=moves[step];let locked=false;
+    openDialog('<div class="dialog-icon">🎵</div><h2 id="dialogTitle">跟团团跳个舞</h2><p>第 '+(step+1)+' / 3 步 · 找到“'+move.label+'”</p><div class="dance-cue" aria-hidden="true">'+move.icon+'</div><div class="dance-options">'+shuffle(moves).map(m=>'<button class="dance-choice" data-move="'+m.label+'"><span>'+m.icon+'</span>'+m.label+'</button>').join('')+'</div><p id="danceFeedback" class="game-feedback" role="status">点相同的动作，也可以一起动一动。</p>');
+    document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>{if(locked)return;if(b.dataset.move!==move.label){$('danceFeedback').textContent='看看上面的动作，再试一次。';return}locked=true;step++;chime();document.querySelectorAll('[data-move]').forEach(x=>x.disabled=true);$('danceFeedback').textContent='跟上啦！';const button=document.createElement('button');button.className='primary';button.textContent=step===3?'跳完啦':'下一个动作';button.onclick=step===3?()=>finishActivity('dance','小小舞蹈完成啦！','🎵'):next;$('dialogContent').append(button)});
+  }next();
+};
+$('rules').onclick=()=>{
+  openDialog('<div class="dialog-icon">⭐</div><h2 id="dialogTitle">先完成任务，再兑换陪伴</h2><p>当前是试行规则，之后可以按你家的约定调整。</p><h3>做完任务，家长确认后得分</h3><div class="rules-list">'+Object.values(TASKS).map(task=>'<div><span>'+task.icon+' '+task.label+'</span><b>+'+task.points+' 分</b><small>每项每天确认一次</small></div>').join('')+'</div><h3>攒下积分，兑换宠物互动</h3><div class="rules-list">'+Object.values(RULES).map(rule=>'<div><span>'+rule.icon+' '+rule.label+'</span><b>'+rule.cost+' 分 / 次</b></div>').join('')+'</div><p class="parent-copy">游戏不会产生积分。家长也可以自定义奖励原因和分值。摸摸、睡觉、叫醒和改名免费。游戏和洗澡在确认兑换时扣分，中途退出可免费继续；喂食在选择食物时扣分。</p><p class="parent-copy">任务按北京时间零点重新开始，已有积分一直保留。积分不足不能兑换，不会欠分，也不会让宠物生病或消失。</p><button class="primary" id="rulesDone">知道啦</button>');$('rulesDone').onclick=closeDialog;
+};
+$('history').onclick=()=>{
+  openDialog('<div class="dialog-icon">📒</div><h2 id="dialogTitle">我的积分记录</h2><p>最近 12 条 · 现在可用 '+pet.points+' 分</p><div id="ledger" class="ledger"></div><button class="primary" id="historyDone">回到小窝</button>');
+  if(!pet.ledger.length){const text=document.createElement('p');text.textContent='完成一件小事，就会记在这里。';$('ledger').append(text)}
+  pet.ledger.forEach(item=>{const row=document.createElement('div'),label=document.createElement('span'),amount=document.createElement('b'),time=document.createElement('small');label.textContent=item.label;amount.textContent=(item.amount>0?'+':'')+item.amount+' 分';time.textContent=new Date(item.at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});row.append(label,amount,time);$('ledger').append(row)});$('historyDone').onclick=closeDialog;
+};
+
+function parentDialog(){
+  if(!ready)return;
+  const setup=!pet.parentConfigured;
+  openDialog('<div class="dialog-icon">🔐</div><h2 id="dialogTitle">'+(setup?'先设置家长密码':'家长确认 · 发积分')+'</h2><p>'+(setup?'请由爸爸妈妈设置 6 位数字密码，发积分时需要使用。请记好，暂不支持找回。':'确认孩子完成任务后，再发积分。')+'</p><form id="parentForm" class="rename-form">'+(setup?'':'<label for="awardTask">完成的任务</label><select id="awardTask">'+Object.entries(TASKS).map(([key,task])=>'<option value="'+key+'" '+(taskState(pet).done.includes(key)?'disabled':'')+'>'+task.label+' +'+task.points+' 分'+(taskState(pet).done.includes(key)?'（今日已发）':'')+'</option>').join('')+'<option value="custom">自定义奖励</option></select><div id="customAward" hidden><label for="awardReason">奖励原因（最多 20 字）</label><input id="awardReason" maxlength="20" placeholder="例如：整理好书包"><label for="awardPoints">奖励多少分（1～500）</label><input id="awardPoints" type="number" min="1" max="500" value="10"></div>')+'<label for="parentPin">'+(setup?'设置':'输入')+' 6 位家长密码</label><input id="parentPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" required>'+(setup?'<label for="confirmPin">再输入一次</label><input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" required>':'')+'<p id="parentError" class="error-note" role="status"></p><button class="primary" id="awardSubmit">'+(setup?'保存家长密码':'确认完成，发放积分')+'</button></form>');
+  if(!setup){const update=()=>{$('customAward').hidden=$('awardTask').value!=='custom';$('awardReason').required=$('awardTask').value==='custom';$('awardPoints').required=$('awardTask').value==='custom'};$('awardTask').onchange=update;update();}
+  $('parentForm').onsubmit=async e=>{
+    e.preventDefault();if(busy||!ready)return;
+    const pin=$('parentPin').value;
+    if(!/^\d{6}$/.test(pin)){$('parentError').textContent='请输入 6 位数字。';return}
+    if(setup&&pin!==$('confirmPin').value){$('parentError').textContent='两次密码不同，请检查一下。';return}
+    const value=setup?undefined:{task:$('awardTask').value,...($('awardTask').value==='custom'?{reason:$('awardReason').value.trim(),points:Number($('awardPoints').value)}:{})};
+    $('awardSubmit').disabled=true;
+    const ok=await act(setup?'parentSetup':'parentAward',value,pin);
+    if(ok){if(setup){parentDialog();$('parentError').textContent='密码设置好了，现在可以确认任务、发积分。'}else{closeDialog();say('收到爸爸妈妈的奖励啦！选一个喜欢的互动吧。');celebrate('⭐')}}
+    else if($('parentError')){$('parentError').textContent=$('speech').textContent;$('parentPin').value='';$('awardSubmit').disabled=false;}
+  };
+}
+$('parentPoints').onclick=parentDialog;
+async function completeActivity(){if(!pet.activity)return false;return act('finish',pet.activity.id)}
+const activityStarts={};
+$('resumeActivity').onclick=()=>{if(pet.activity&&ready&&!busy&&!pet.sleeping)activityStarts[pet.activity.action]()};
+// Charge once before starting paid activities. Completion and canceled rounds never mint points.
+for(const action of ['bath','play','count','memory','dance']){
+  const begin=$(action).onclick;activityStarts[action]=begin;
+  $(action).onclick=()=>{
+    const rule=RULES[action];
+    if(pet.activity){showReward('还有一个已兑换的互动，点“继续”就能玩，不再扣分。');return}
+    if(pet.points<rule.cost){openDialog('<div class="dialog-icon">⭐</div><h2 id="dialogTitle">再攒一点积分吧</h2><p>这个互动需要 '+rule.cost+' 分，现在有 '+pet.points+' 分。完成任务后，请爸爸妈妈确认发分。</p><p>也可以先摸摸团团，或让它休息一会。</p><button class="primary" id="notEnoughDone">知道啦</button>');$('notEnoughDone').onclick=closeDialog;return}
+    openDialog('<div class="dialog-icon">'+rule.icon+'</div><h2 id="dialogTitle">用 '+rule.cost+' 分兑换'+rule.label+'？</h2><p>现在有 '+pet.points+' 分，兑换后剩 '+(pet.points-rule.cost)+' 分。<br>确认后开始互动；退出后可点“继续”接着玩，不再扣分。</p><button class="primary" id="confirmExchange">确认兑换，开始玩</button><button class="rest-button" id="cancelExchange">先不兑换</button>');
+    $('cancelExchange').onclick=closeDialog;
+    $('confirmExchange').onclick=async()=>{if(busy||!ready)return;$('confirmExchange').disabled=true;if(await act(action)){closeDialog();begin()}else closeDialog()};
+  };
 }
