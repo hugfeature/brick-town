@@ -1,8 +1,9 @@
 import {freshPet,normalizePet,energyNow} from './state.mjs';
 import {RULES,TASKS,taskState} from './rules.mjs';
+import {CLOUD_ORIGIN,parseFamilyKey,familyLink,connectionHint} from './connection.mjs';
 
 const $=id=>document.getElementById(id);
-const API_ORIGIN='https://little-fox-playhouse.wangwang19920321.chatgpt.site';
+const API_ORIGIN=CLOUD_ORIGIN;
 const API_URL=(location.hostname==='terminal.local'||location.origin===API_ORIGIN?'':API_ORIGIN)+'/api/pet';
 const TOKEN_KEY='brickTownPetFamilyV1';
 const SOUND_KEY='brickTownPetSoundV1';
@@ -10,19 +11,32 @@ const tokenPattern=/^[a-f0-9]{48}$/;
 const dialog=$('dialog');
 let pet=freshPet(),revision=0,token='',ready=false,busy=false,syncing=false,mode='',sound=false,audio=null;
 let bubbleCount=0,bathComplete=false,round=0,target=0,answered=false,gameComplete=false,petTapped=0,lastFocus=null;
-let pending=null,lastSyncError=0,toastTimer;
+let pending=null,lastSyncError=0,toastTimer,lastConnectionError='';
 let rewardMessage='';
 const colors=[{name:'红色',color:'#d95e59'},{name:'蓝色',color:'#4687cd'},{name:'黄色',color:'#b58a12'}];
 function randomKey(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('')}
 function requestId(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('')}
 function remember(){try{localStorage.setItem(TOKEN_KEY,token)}catch{}history.replaceState(null,'','#home='+token)}
-function familyURL(){return 'https://hugfeature.github.io/brick-town/pet/#home='+token}
+function familyURL(){return familyLink(token)}
 function say(text){$('speech').textContent=text}
 function status(text,error=false){$('saveStatus').textContent=text;$('saveStatus').classList.toggle('saved-error',error)}
 function setState(data){if(data&&Number.isSafeInteger(data.revision)&&data.revision>=revision){pet=normalizePet(data.pet);revision=data.revision;render()}}
+function renderConnection(){
+  const working=busy||syncing;
+  const hint=connectionHint({hasKey:!!token,connected:ready,working,missing:lastSyncError===404,offline:navigator.onLine===false,pending:!!pending});
+  $('connectionPanel').hidden=ready&&!pending;
+  $('connectionTitle').textContent=hint.title;$('connectionDetail').textContent=hint.detail;
+  $('reconnectNow').textContent=working?'正在连接…':token?'重新连接':'领养或打开小窝';
+  $('reconnectNow').disabled=working;$('openFamily').disabled=working;$('openFamilyFooter').disabled=working;
+  $('directHome').hidden=!token||working||!!pending||location.origin===CLOUD_ORIGIN;
+  if(token)$('directHome').href=familyLink(token,true);
+  $('connectionError').hidden=!lastConnectionError||working;
+  $('connectionError').textContent=lastConnectionError;
+}
 function render(){
+  renderConnection();
   $('petName').textContent=pet.name;document.title=pet.name+'的小窝 · 积木小镇';
-  for(const key of ['food','clean','joy','energy']){const value=key==='energy'?energyNow(pet):pet[key];$(key+'Value').textContent=value;$(key+'Bar').value=value}
+  for(const key of ['food','clean','joy','energy']){const value=key==='energy'?energyNow(pet):pet[key];$(key+'Value').textContent=token&&!revision?'—':value;$(key+'Bar').value=value}
   document.querySelector('.playhouse').classList.toggle('night',pet.sleeping);
   $('roomState').textContent=pet.sleeping?'☾ 睡着啦':'☀ 醒着呢';
   $('sleepMark').hidden=!pet.sleeping;$('sleepIcon').textContent=pet.sleeping?'☀️':'🌙';
@@ -52,17 +66,17 @@ async function api(method='GET',body){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
   try{
     const response=await fetch(API_URL,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal,credentials:'omit'});
-    let data;try{data=await response.json()}catch{throw new Error('云端还没连上，请稍后点“重新连接”。')}
+    let data;try{data=await response.json()}catch{const error=new Error('云端没有返回存档数据，请点上方“重新连接”。');error.status=response.status;throw error}
     if(!response.ok){const e=new Error(data.error||'暂时没连上云端');e.status=response.status;e.data=data;throw e}return data;
-  }catch(error){if(error.name==='AbortError'||error instanceof TypeError)throw new Error('网络暂时没连上，请稍后再试。');throw error}finally{clearTimeout(timer)}
+  }catch(error){if(error.name==='AbortError'||error instanceof TypeError)throw new Error(error.name==='AbortError'?'连接超时，请检查网络后重新连接。':'当前浏览器未能连接到云端，请重新连接或在系统浏览器打开。');throw error}finally{clearTimeout(timer)}
 }
 async function refresh(manual=false){
   if(!token||busy||syncing)return;syncing=true;
-  if(manual)status('正在同步…');
+  if(manual)status('正在同步…');renderConnection();
   try{
-    const before=revision;const data=await api();setState(data);ready=true;lastSyncError=0;status('☁ 已同步到云端');
+    const before=revision;const data=await api();setState(data);ready=true;lastSyncError=0;lastConnectionError='';status('☁ 已同步到云端');
     if(manual)say(pet.sleeping?'嘘，'+pet.name+'正在做美梦。':before&&revision>before?'家人刚刚照顾过我，已经同步啦！':'小窝同步好了，一起玩吧。');
-  }catch(e){lastSyncError=e.status||0;ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
+  }catch(e){lastSyncError=e.status||0;lastConnectionError=e.message;ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
   finally{syncing=false;render()}
 }
 async function act(action,value,pin){
@@ -73,14 +87,15 @@ async function act(action,value,pin){
   }catch(e){
     if(e.status===409){setState(e.data);pending=null;status('☁ 已同步家人的操作');say(e.message)}
     else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;status('☁ 已连接云端');say(e.message);showReward(e.message)}
-    else{ready=false;status('保存未确认 · 点这里重连',true);say('网络暂时断开了，先重新连接小窝。')}
+    else{ready=false;lastConnectionError=e.message;status('保存未确认 · 点这里重连',true);say('网络暂时断开了，先重新连接小窝。')}
     return false;
   }finally{busy=false;render()}
 }
 async function reconnect(){
   if(!token){welcome();return}
   // Retry only this exact last request: requestId + revision prevent duplicate/overwriting progress.
-  if(pending&&!busy){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;ready=true;status('☁ 已连接云端');say(e.message)}else{say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
+  if(busy||syncing)return;
+  if(pending){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;lastConnectionError='';status('☁ 已保存到云端');say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');say(e.message)}else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;ready=true;status('☁ 已连接云端');say(e.message)}else{lastConnectionError=e.message;say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
 }
 function chime(notes=[523,659,784]){
   if(!sound||document.hidden)return;
@@ -104,14 +119,14 @@ function welcome(message='给团团一个家，开始一起玩吧。'){
     if(!token){token=randomKey();remember()}
     pending={action:'adopt',requestId:requestId()};
     try{const data=await api('POST',pending);setState(data);ready=true;pending=null;status('☁ 小窝已保存到云端');busy=false;closeDialog();say('你好呀！我是'+pet.name+'，来抱一下。');celebrate('✨')}
-    catch(e){$('welcomeMessage').textContent=e.message;$('adopt').textContent='再试一次';$('adopt').disabled=false}
+    catch(e){lastConnectionError=e.message;$('welcomeMessage').textContent=e.message;$('adopt').textContent='再试一次';$('adopt').disabled=false}
     finally{busy=false;render()}
   };
   $('joinHome').onclick=joinDialog;
 }
 function joinDialog(){
-  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">回到同一个小窝</h2><p>把家人发来的完整家庭链接粘贴到这里。</p><form id="joinForm" class="rename-form"><label for="homeLink">家庭链接</label><input id="homeLink" autocomplete="off" placeholder="https://…/#home=…" required><p id="joinError" class="error-note"></p><button class="primary">打开小窝</button></form>');
-  $('joinForm').onsubmit=async e=>{e.preventDefault();if(busy)return;const match=$('homeLink').value.trim().match(/#home=([a-f0-9]{48})$/);if(!match){$('joinError').textContent='链接不完整，请重新复制家人发来的链接。';return}busy=true;const old=token;token=match[1];try{const d=await api();revision=0;setState(d);ready=true;remember();pending=null;status('☁ 已同步到云端');busy=false;closeDialog();say('你回来啦！')}catch(err){token=old;$('joinError').textContent=err.message}finally{busy=false;render()}};
+  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">回到同一个小窝</h2><p>把原手机“换手机接着玩”里的完整链接或家庭口令粘贴到这里。</p><form id="joinForm" class="rename-form"><label for="homeLink">家庭链接或口令</label><input id="homeLink" autocomplete="off" placeholder="https://…/#home=…" required><p id="joinError" class="error-note"></p><button class="primary">打开小窝</button></form>');
+  $('joinForm').onsubmit=async e=>{e.preventDefault();if(busy)return;const key=parseFamilyKey($('homeLink').value);if(!key){$('joinError').textContent='链接不完整，请重新复制家人发来的链接。';return}busy=true;const old=token;token=key;try{const d=await api();revision=0;setState(d);ready=true;remember();pending=null;lastConnectionError='';status('☁ 已同步到云端');busy=false;closeDialog();say('你回来啦！')}catch(err){token=old;$('joinError').textContent=err.message}finally{busy=false;render()}};
 }
 $('feed').onclick=()=>{
   openDialog('<div class="dialog-icon">🍽️</div><h2 id="dialogTitle">今天吃点什么？</h2><p id="feedMessage">每份需要 '+RULES.feed.cost+' 分，选好食物后扣分。<br>现在有 '+pet.points+' 分。</p><div class="food-options"><button class="food-option" data-food="apple"><span>🍎</span>小苹果</button><button class="food-option" data-food="carrot"><span>🥕</span>胡萝卜</button><button class="food-option" data-food="fish"><span>🐟</span>小鱼干</button></div>');
@@ -141,14 +156,15 @@ function updateSound(){$('sound').setAttribute('aria-pressed',String(sound));$('
 $('sound').onclick=()=>{sound=!sound;updateSound();if(sound)chime();else audio?.suspend().catch(()=>{})};
 $('share').onclick=()=>{
   if(!token)return;
-  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">换手机，也在同一个家</h2><p>把这个链接发给家人，在另一部手机打开，就能接着玩。</p><div class="rename-form"><label for="shareLink">家庭专属链接</label><input id="shareLink" readonly><button class="primary" id="copyLink">复制家庭链接</button></div><p id="copyStatus" class="share-note">拿到链接的人都能照顾这只宠物，只发给家人哦。</p>');$('shareLink').value=familyURL();$('shareLink').onclick=()=>{$('shareLink').select()};$('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(familyURL());$('copyStatus').textContent='复制好了，发给家人或保存到收藏吧。'}catch{$('shareLink').focus();$('shareLink').select();$('copyStatus').textContent='请长按上面的链接，选择“复制”。'}};
+  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">换手机，也在同一个家</h2><p>把这个链接发给家人，在另一部手机打开，就能接着玩。</p><div class="rename-form"><label for="shareLink">家庭专属链接</label><input id="shareLink" readonly><label for="familyCode">家庭口令（链接打不开时可粘贴）</label><input id="familyCode" readonly><button class="primary" id="copyLink">复制家庭链接</button></div><p id="copyStatus" class="share-note">拿到链接的人都能照顾这只宠物，只发给家人哦。</p>');$('shareLink').value=familyURL();$('familyCode').value=token;$('familyCode').onclick=()=>{$('familyCode').select()};$('shareLink').onclick=()=>{$('shareLink').select()};$('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(familyURL());$('copyStatus').textContent='复制好了，发给家人或保存到收藏吧。'}catch{$('shareLink').focus();$('shareLink').select();$('copyStatus').textContent='请长按上面的链接，选择“复制”。'}};
 };
 $('parents').onclick=()=>{
   openDialog('<div class="dialog-icon">🌱</div><h2 id="dialogTitle">给爸爸妈妈</h2><p class="parent-copy">适合约 <b>5～7 岁</b>孩子独立点按，也可以陪低龄孩子一起体验。找颜色提供观察练习，照顾宠物提供表达关心的机会，数星星和配对也可以慢慢尝试，不是能力测评。</p><p class="parent-copy">没有广告、付费、签到或死亡惩罚。完成现实中的任务后，由家长输入密码发积分；孩子用积分兑换互动，不花真钱。摸摸、睡觉和叫醒免费。请由家长先设置密码，再把家庭链接交给孩子。离开时不会扣状态，睡觉能恢复精神，随时可以结束。</p><p class="parent-copy">进度保存在云端。<b>换手机请打开同一个家庭链接</b>，不要重新领养。两台手机一起玩时会同步，网络中断会暂停修改。请收藏家庭链接，丢失后不能凭名字找回。</p><button class="primary" id="parentsDone">知道了，回到小窝</button>');$('parentsDone').onclick=closeDialog;
 };
-$('sync').onclick=reconnect;
+$('sync').onclick=reconnect;$('reconnectNow').onclick=reconnect;
+$('openFamily').onclick=joinDialog;$('openFamilyFooter').onclick=joinDialog;
 setInterval(()=>{if(!document.hidden)render()},60000);
-document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.hidden)audio?.suspend().catch(()=>{});else if(!pending)refresh();});
+document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.hidden)audio?.suspend().catch(()=>{});else reconnect();});
 window.addEventListener('online',()=>{reconnect()});window.addEventListener('offline',()=>{ready=false;render();status('离线了 · 连网后接着玩',true)});
 window.addEventListener('hashchange',()=>{location.reload()});
 setInterval(()=>{if(!document.hidden&&!pending)refresh()},15000);
@@ -159,7 +175,7 @@ async function init(){
   const match=location.hash.match(/^#home=([a-f0-9]{48})$/);
   if(match)token=match[1];else if(!location.hash){try{const stored=localStorage.getItem(TOKEN_KEY);if(tokenPattern.test(stored||''))token=stored}catch{}}
   render();
-  if(token){remember();await refresh(true);if(!ready){say('还没连接到小窝，点下方“重连”再试。');status('小窝未连接 · 点这里重连',true);if(lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}}
+  if(token){remember();await refresh(true);if(!ready){say('小窝还没连上，请点上方“重新连接”。');status('小窝未连接 · 点这里重连',true);}}
   else{status('领养后自动保存到云端');welcome(location.hash?'家庭链接不完整，请让家人重新发一次。':'给团团一个家，开始一起玩吧。')}
 }
 init();
