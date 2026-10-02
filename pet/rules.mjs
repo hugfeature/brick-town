@@ -1,4 +1,4 @@
-// Trial prices and task awards. Keep the server and frontend copies in sync.
+// Trial prices and task awards for the local pet. The historical cloud copy is frozen.
 export const RULES=Object.freeze({
   feed:{label:'喂一喂',icon:'🍎',cost:5},bath:{label:'洗香香',icon:'🛁',cost:8},
   play:{label:'找颜色',icon:'🎨',cost:10},count:{label:'数星星',icon:'⭐',cost:10},

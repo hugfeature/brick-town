@@ -1,48 +1,36 @@
 import {freshPet,normalizePet,energyNow} from './state.mjs';
 import {RULES,TASKS,taskState} from './rules.mjs';
-import {CLOUD_ORIGIN,parseFamilyKey,familyLink,connectionHint} from './connection.mjs';
+import {LocalPetStore,SAVE_KEY,decodeBackup} from './local-store.mjs';
 
 const $=id=>document.getElementById(id);
-const API_ORIGIN=CLOUD_ORIGIN;
-const API_URL=(location.hostname==='terminal.local'||location.origin===API_ORIGIN?'':API_ORIGIN)+'/api/pet';
-const TOKEN_KEY='brickTownPetFamilyV1';
+const store=new LocalPetStore();
+const PUBLIC_PAGE='https://hugfeature.github.io/brick-town/pet/';
 const SOUND_KEY='brickTownPetSoundV1';
-const tokenPattern=/^[a-f0-9]{48}$/;
 const dialog=$('dialog');
-let pet=freshPet(),revision=0,token='',ready=false,busy=false,syncing=false,mode='',sound=false,audio=null;
+let pet=freshPet(),revision=0,ready=false,busy=false,mode='',sound=false,audio=null;
 let bubbleCount=0,bathComplete=false,round=0,target=0,answered=false,gameComplete=false,petTapped=0,lastFocus=null;
-let pending=null,lastSyncError=0,toastTimer,lastConnectionError='';
-let rewardMessage='',lastNetworkAttempt=0;
+let toastTimer,saveError='',rewardMessage='',activeActivityId='';
 const colors=[{name:'红色',color:'#d95e59'},{name:'蓝色',color:'#4687cd'},{name:'黄色',color:'#b58a12'}];
-function randomKey(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('')}
-function requestId(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('')}
-function remember(){try{localStorage.setItem(TOKEN_KEY,token)}catch{}history.replaceState(null,'','#home='+token)}
-function familyURL(){return familyLink(token)}
 function say(text){$('speech').textContent=text}
 function status(text,error=false){$('saveStatus').textContent=text;$('saveStatus').classList.toggle('saved-error',error)}
-function setState(data){if(data&&Number.isSafeInteger(data.revision)&&data.revision>=revision){pet=normalizePet(data.pet);revision=data.revision;render()}}
+function setState(data){if(data&&Number.isSafeInteger(data.revision)&&data.revision>=1){pet=normalizePet(data.pet);revision=data.revision;render()}}
 function renderConnection(){
-  const working=busy||syncing;
-  const hint=connectionHint({hasKey:!!token,connected:ready,working,missing:lastSyncError===404,offline:navigator.onLine===false,pending:!!pending});
-  $('connectionPanel').hidden=ready&&!pending;
-  $('connectionTitle').textContent=hint.title;$('connectionDetail').textContent=hint.detail;
-  $('reconnectNow').textContent=working?'正在连接…':token?'重新连接':'领养或打开小窝';
-  $('reconnectNow').disabled=working;$('openFamily').disabled=working;$('openFamilyFooter').disabled=working;
-  $('directHome').hidden=!token||working||!!pending||location.origin===CLOUD_ORIGIN;
-  if(token)$('directHome').href=familyLink(token,true);
-  $('connectionError').hidden=!lastConnectionError||working;
-  $('connectionError').textContent=lastConnectionError;
+  $('connectionPanel').hidden=ready&&!saveError;
+  $('connectionTitle').textContent=saveError?'本机存档需要处理':'在这台设备上，养自己的小狐狸';
+  $('connectionDetail').textContent=saveError||'进度自动保存在当前浏览器。别人打开链接，会有自己的小窝。';
+  $('reconnectNow').textContent=busy?'正在保存…':revision?'重新读取存档':'领养小狐狸';
+  $('reconnectNow').disabled=busy;$('openFamily').disabled=busy;$('openFamilyFooter').disabled=busy;
 }
 function render(){
   renderConnection();
   $('petName').textContent=pet.name;document.title=pet.name+'的小窝 · 积木小镇';
-  for(const key of ['food','clean','joy','energy']){const value=key==='energy'?energyNow(pet):pet[key];$(key+'Value').textContent=token&&!revision?'—':value;$(key+'Bar').value=value}
+  for(const key of ['food','clean','joy','energy']){const value=key==='energy'?energyNow(pet):pet[key];$(key+'Value').textContent=revision?value:'—';$(key+'Bar').value=value}
   document.querySelector('.playhouse').classList.toggle('night',pet.sleeping);
   $('roomState').textContent=pet.sleeping?'☾ 睡着啦':'☀ 醒着呢';
   $('sleepMark').hidden=!pet.sleeping;$('sleepIcon').textContent=pet.sleeping?'☀️':'🌙';
   $('sleepLabel').textContent=pet.sleeping?'起床啦':'睡一会';$('sleepHint').textContent=pet.sleeping?'轻轻叫醒它':'充充小电池';
   for(const id of ['feed','bath','play','pet','count','memory','dance']) $(id).disabled=!ready||busy||pet.sleeping||mode==='bath';
-  $('sleep').disabled=!ready||busy||mode==='bath';$('rename').disabled=!ready||busy;$('share').disabled=!token;$('shareTop').disabled=!token;
+  $('sleep').disabled=!ready||busy||mode==='bath';$('rename').disabled=!ready||busy;$('share').disabled=busy;$('shareTop').disabled=busy;
   $('sceneHint').textContent=mode==='bath'?`还剩 ${bubbleCount} 个泡泡，点一点`:(pet.sleeping?'可以关掉网页，让团团安心休息':'轻轻点一点，'+pet.name+'会很开心');
   $('parentPoints').disabled=!ready||busy;
   const today=taskState(pet);
@@ -62,41 +50,29 @@ function render(){
   $('bondHearts').setAttribute('aria-label',`已获得 ${Math.min(5,Math.ceil(pet.care/3))} 颗陪伴爱心`);
   document.querySelectorAll('[data-sticker]').forEach(el=>{const done=pet.stickers.includes(el.dataset.sticker);el.classList.toggle('earned',done);el.querySelector('small').textContent=done?'一起完成啦':'还没试过'});
 }
-async function api(method='GET',body){
-  lastNetworkAttempt=Date.now();
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+function refreshLocal(manual=false){
+  if(busy)return;
   try{
-    const response=await fetch(API_URL,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal,credentials:'omit'});
-    let data;try{data=await response.json()}catch{const error=new Error('云端没有返回存档数据，请点上方“重新连接”。');error.status=response.status;throw error}
-    if(!response.ok){const e=new Error(data.error||'暂时没连上云端');e.status=response.status;e.data=data;throw e}return data;
-  }catch(error){if(error.name==='AbortError'||error instanceof TypeError)throw new Error(error.name==='AbortError'?'连接超时，请检查网络后重新连接。':'当前浏览器未能连接到云端，请重新连接或在系统浏览器打开。');throw error}finally{clearTimeout(timer)}
-}
-async function refresh(manual=false){
-  if(!token||busy||syncing)return;syncing=true;
-  if(manual)status('正在同步…');renderConnection();
-  try{
-    const before=revision;const data=await api();setState(data);ready=true;lastSyncError=0;lastConnectionError='';status('☁ 已同步到云端');
-    if(manual)say(pet.sleeping?'嘘，'+pet.name+'正在做美梦。':before&&revision>before?'家人刚刚照顾过我，已经同步啦！':'小窝同步好了，一起玩吧。');
-  }catch(e){lastSyncError=e.status||0;lastConnectionError=e.message;ready=false;status('连接中断 · 点这里重连',true);if(manual)say(e.message);}
-  finally{syncing=false;render()}
+    const data=store.read();saveError='';ready=!!data;
+    if(data)setState(data);else{revision=0;pet=freshPet()}
+    status(data?'✓ 已保存在这台设备':'领养后自动保存在本机');
+    if(manual){if(data)say('小窝在这台设备上保存好了。');else welcome()}
+  }catch(e){saveError=e.message;ready=false;status('本机存档未能读取',true);if(manual)say(e.message)}
+  render();
 }
 async function act(action,value,pin){
-  if(busy||!ready)return false;busy=true;render();status('正在保存…');
-  const body={action,value,revision,requestId:requestId(),...(pin?{pin}:{})};pending=body;const before=pet.points;
+  if(busy||!ready)return false;busy=true;render();status('正在保存到本机…');
+  const before=pet.points;
   try{
-    const data=await api('POST',body);setState(data);pending=null;status('☁ 已保存到云端');rewardMessage='';const delta=pet.points-before;if(delta!==0){rewardMessage=delta>0?'⭐ 家长奖励 +'+delta+' 分':'已兑换，使用 '+(-delta)+' 分';showReward(rewardMessage)}return true;
+    setState(await store.act(action,value,pin,revision));saveError='';status('✓ 已保存在这台设备');
+    rewardMessage='';const delta=pet.points-before;if(delta!==0){rewardMessage=delta>0?'⭐ 家长奖励 +'+delta+' 分':'已兑换，使用 '+(-delta)+' 分';showReward(rewardMessage)}return true;
   }catch(e){
-    if(e.status===409){setState(e.data);pending=null;status('☁ 已同步家人的操作');say(e.message)}
-    else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;status('☁ 已连接云端');say(e.message);showReward(e.message)}
-    else{ready=false;lastConnectionError=e.message;status('保存未确认 · 点这里重连',true);say('网络暂时断开了，先重新连接小窝。')}
-    return false;
+    if(e.data)setState(e.data);
+    if(e.status===507){ready=false;saveError=e.message;status('本次操作没有保存',true)}
+    else if(e.status===404){ready=false;status('还没有本机存档',true)}
+    else status('✓ 已保存在这台设备');
+    say(e.message);showReward(e.message);return false;
   }finally{busy=false;render()}
-}
-async function reconnect(manual=true){
-  if(!token){if(manual)welcome();return}
-  // Retry only this exact last request: requestId + revision prevent duplicate/overwriting progress.
-  if(busy||syncing)return;
-  if(pending){busy=true;render();status('正在确认上次保存…');try{const d=await api('POST',pending);setState(d);pending=null;ready=true;lastConnectionError='';status('☁ 已保存到云端');if(manual)say('小窝连接好啦！')}catch(e){if(e.status===409){setState(e.data);pending=null;ready=true;status('☁ 已同步家人的操作');if(manual)say(e.message)}else if([400,401,429].includes(e.status)){if(e.data?.pet)setState(e.data);pending=null;ready=true;status('☁ 已连接云端');if(manual)say(e.message)}else{lastConnectionError=e.message;if(manual)say(e.message);status('连接失败 · 点这里重试',true)}}finally{busy=false;render()}}else{await refresh(manual);if(manual&&lastSyncError===404)welcome('这个链接的小窝还没创建。可以继续领养，或粘贴家人已保存的家庭链接。');}
 }
 function chime(notes=[523,659,784]){
   if(!sound||document.hidden)return;
@@ -112,22 +88,35 @@ $('closeDialog').onclick=closeDialog;
 dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault()});
 dialog.addEventListener('close',()=>{document.querySelectorAll('input[type=password]').forEach(x=>x.value='');if(mode==='game')mode='';render()});
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog()}});
-function welcome(message='给团团一个家，开始一起玩吧。'){
-  openDialog('<div class="dialog-icon">🦊</div><h2 id="dialogTitle">认识一下，我是团团</h2><p id="welcomeMessage"></p><button class="primary" id="adopt">领养团团</button><button class="rest-button" id="joinHome">已经有小窝？打开家庭链接</button>');
+function welcome(message='给团团一个家吧。进度自动保存在这台设备的当前浏览器里。'){
+  openDialog('<div class="dialog-icon">🦊</div><h2 id="dialogTitle">认识一下，我是团团</h2><p id="welcomeMessage"></p><button class="primary" id="adopt">领养团团</button><button class="rest-button" id="joinHome">有备份？导入存档</button>');
   $('welcomeMessage').textContent=message;
   $('adopt').onclick=async()=>{
     if(busy)return;busy=true;$('adopt').disabled=true;$('adopt').textContent='正在准备小窝…';
-    if(!token){token=randomKey();remember()}
-    pending={action:'adopt',requestId:requestId()};
-    try{const data=await api('POST',pending);setState(data);ready=true;pending=null;status('☁ 小窝已保存到云端');busy=false;closeDialog();say('你好呀！我是'+pet.name+'，来抱一下。');celebrate('✨')}
-    catch(e){lastConnectionError=e.message;$('welcomeMessage').textContent=e.message;$('adopt').textContent='再试一次';$('adopt').disabled=false}
+    try{setState(await store.adopt());ready=true;saveError='';status('✓ 已保存在这台设备');busy=false;closeDialog();say('你好呀！我是'+pet.name+'，来抱一下。');celebrate('✨')}
+    catch(e){saveError=e.message;$('welcomeMessage').textContent=e.message;$('adopt').textContent='再试一次';$('adopt').disabled=false}
     finally{busy=false;render()}
   };
   $('joinHome').onclick=joinDialog;
 }
 function joinDialog(){
-  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">回到同一个小窝</h2><p>把原手机“换手机接着玩”里的完整链接或家庭口令粘贴到这里。</p><form id="joinForm" class="rename-form"><label for="homeLink">家庭链接或口令</label><input id="homeLink" autocomplete="off" placeholder="https://…/#home=…" required><p id="joinError" class="error-note"></p><button class="primary">打开小窝</button></form>');
-  $('joinForm').onsubmit=async e=>{e.preventDefault();if(busy)return;const key=parseFamilyKey($('homeLink').value);if(!key){$('joinError').textContent='链接不完整，请重新复制家人发来的链接。';return}busy=true;const old=token;token=key;try{const d=await api();revision=0;setState(d);ready=true;remember();pending=null;lastConnectionError='';status('☁ 已同步到云端');busy=false;closeDialog();say('你回来啦！')}catch(err){token=old;$('joinError').textContent=err.message}finally{busy=false;render()}};
+  openDialog('<div class="dialog-icon">📥</div><h2 id="dialogTitle">导入小窝存档</h2><p>在原设备“备份 / 换手机”中复制最新存档码，粘贴到这里。导入后两台设备各自保存，不会自动同步。</p><form id="joinForm" class="rename-form"><label for="homeLink">完整存档码（FOX1. 开头）</label><textarea id="homeLink" rows="4" autocomplete="off" spellcheck="false" required></textarea><p id="joinError" class="error-note" role="status"></p><button class="primary">查看这份存档</button></form>');
+  $('joinForm').onsubmit=e=>{
+    e.preventDefault();if(busy)return;
+    const code=$('homeLink').value;
+    let imported;try{imported=decodeBackup(code)}catch(err){$('joinError').textContent=err.message;return}
+    let expected=revision;const needsPin=pet.parentConfigured&&revision>0;
+    openDialog('<div class="dialog-icon">📥</div><h2 id="dialogTitle">确认导入存档</h2><p id="importSummary"></p><p>导入后使用备份中的家长密码。存档只包含备份那一刻的进度。</p><form id="importForm" class="rename-form">'+(revision?'<label class="import-check"><input id="confirmImport" type="checkbox" required>用这份备份替换本机现有的小窝</label>':'')+(needsPin?'<label for="importPin">当前小窝的 6 位家长密码</label><input id="importPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off">':'')+'<p id="importError" class="error-note" role="status"></p><button class="primary" id="importSubmit">确认导入</button><button class="rest-button" type="button" id="cancelImport">先不导入</button></form>');
+    $('importSummary').textContent=imported.pet.name+' · '+imported.pet.points+' 积分 · 备份时间 '+new Date(imported.savedAt).toLocaleString('zh-CN');
+    $('cancelImport').onclick=closeDialog;
+    $('importForm').onsubmit=async event=>{
+      event.preventDefault();if(busy)return;busy=true;$('importSubmit').disabled=true;
+      try{
+        const data=await store.importBackup(code,$('importPin')?.value,expected);setState(data);ready=true;saveError='';busy=false;cancelBath();closeDialog();status('✓ 存档已导入这台设备');say('你回来啦！进度已保存在这台设备。');
+      }catch(err){if(err.data){setState(err.data);expected=revision}if(err.status===409&&$('confirmImport'))$('confirmImport').checked=false;$('importError').textContent=err.message;if($('importPin'))$('importPin').value='';$('importSubmit').disabled=false}
+      finally{busy=false;render()}
+    };
+  };
 }
 $('feed').onclick=()=>{
   openDialog('<div class="dialog-icon">🍽️</div><h2 id="dialogTitle">今天吃点什么？</h2><p id="feedMessage">每份需要 '+RULES.feed.cost+' 分，选好食物后扣分。<br>现在有 '+pet.points+' 分。</p><div class="food-options"><button class="food-option" data-food="apple"><span>🍎</span>小苹果</button><button class="food-option" data-food="carrot"><span>🥕</span>胡萝卜</button><button class="food-option" data-food="fish"><span>🐟</span>小鱼干</button></div>');
@@ -156,39 +145,41 @@ $('rename').onclick=()=>{
 function updateSound(){$('sound').setAttribute('aria-pressed',String(sound));$('sound').setAttribute('aria-label',sound?'关闭声音':'打开声音');$('sound').querySelector('span').textContent=sound?'声音开':'声音关';try{localStorage.setItem(SOUND_KEY,String(sound))}catch{}}
 $('sound').onclick=()=>{sound=!sound;updateSound();if(sound)chime();else audio?.suspend().catch(()=>{})};
 function shareHome(){
-  if(!token)return;
-  openDialog('<div class="dialog-icon">🏡</div><h2 id="dialogTitle">分享小窝 · 换手机接着玩</h2><p>一起照顾这只宠物：复制下面的家庭链接发给家人，宠物和积分会同步。</p><div class="rename-form"><label for="shareLink">家庭专属链接（完整复制）</label><input id="shareLink" readonly><button class="primary" id="copyLink">复制家庭链接，接着玩</button><details class="share-backup"><summary>链接打不开？查看家庭口令</summary><label for="familyCode">在“打开家庭链接”中粘贴</label><input id="familyCode" readonly></details></div><p id="copyStatus" class="share-note">拿到链接的人都能照顾这只宠物，只发给家人哦。</p><div class="public-share"><b>让朋友自己养一只？</b><p>发普通入口，他们可以领养自己的宠物。</p><a href="https://hugfeature.github.io/brick-town/pet/">hugfeature.github.io/brick-town/pet/</a><button class="rest-button" id="copyPublic">复制普通入口</button></div>');$('shareLink').value=familyURL();$('familyCode').value=token;$('familyCode').onclick=()=>{$('familyCode').select()};$('shareLink').onclick=()=>{$('shareLink').select()};$('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(familyURL());$('copyStatus').textContent='复制好了，发给家人或保存到收藏吧。'}catch{$('shareLink').focus();$('shareLink').select();$('copyStatus').textContent='请长按上面的链接，选择“复制”。'}};
-  $('copyPublic').onclick=async()=>{try{await navigator.clipboard.writeText('https://hugfeature.github.io/brick-town/pet/');$('copyStatus').textContent='普通入口已复制，朋友可以领养自己的宠物。'}catch{$('copyStatus').textContent='请长按下方普通入口，选择复制链接。'}};
+  let code='';try{if(revision)code=store.exportBackup()}catch(e){say(e.message)}
+  openDialog('<div class="dialog-icon">💾</div><h2 id="dialogTitle">备份 / 换手机</h2><p>小窝只保存在当前浏览器。清除网站数据或使用无痕模式，可能丢失进度；请把备份存到自己的备忘录。</p>'+(code?'<div class="rename-form"><label for="backupCode">当前进度的存档码</label><textarea id="backupCode" rows="3" readonly spellcheck="false"></textarea><button class="primary" id="copyBackup">复制存档码</button><button class="rest-button" id="downloadBackup">下载存档文件</button></div>':'<p>领养后，就可以备份这台设备的进度。</p>')+'<p id="copyStatus" class="share-note" role="status">换手机后点“导入存档”，粘贴最新存档码即可。两边之后各自保存。</p><button class="rest-button" id="importBackup">导入已有存档</button><div class="public-share"><b>分享给朋友，养各自的小狐狸</b><p>这个链接不包含你的进度。</p><input id="shareLink" aria-label="游戏分享链接" readonly><button class="rest-button" id="copyPublic">复制游戏链接</button></div>');
+  $('shareLink').value=PUBLIC_PAGE;$('shareLink').onclick=()=>{$('shareLink').select()};
+  if(code){
+    $('backupCode').value=code;$('backupCode').onclick=()=>{$('backupCode').select()};
+    $('copyBackup').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('copyStatus').textContent='存档码已复制。请保存到备忘录，或发给需要接着玩的家人。'}catch{$('backupCode').focus();$('backupCode').select();$('copyStatus').textContent='请长按存档码，选择“复制”。'}};
+    $('downloadBackup').onclick=()=>{const url=URL.createObjectURL(new Blob([code],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='little-fox-save.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);$('copyStatus').textContent='存档已导出。换手机时打开文件，复制全部内容并导入。'};
+  }
+  $('importBackup').onclick=joinDialog;
+  $('copyPublic').onclick=async()=>{try{await navigator.clipboard.writeText(PUBLIC_PAGE);$('copyStatus').textContent='游戏链接已复制，朋友可以养自己的小狐狸。'}catch{$('shareLink').focus();$('shareLink').select();$('copyStatus').textContent='请长按游戏链接，选择“复制”。'}};
 }
 $('share').onclick=shareHome;$('shareTop').onclick=shareHome;
 $('parents').onclick=()=>{
-  openDialog('<div class="dialog-icon">🌱</div><h2 id="dialogTitle">给爸爸妈妈</h2><p class="parent-copy">适合约 <b>5～7 岁</b>孩子独立点按，也可以陪低龄孩子一起体验。找颜色提供观察练习，照顾宠物提供表达关心的机会，数星星和配对也可以慢慢尝试，不是能力测评。</p><p class="parent-copy">没有广告、付费、签到或死亡惩罚。完成现实中的任务后，由家长输入密码发积分；孩子用积分兑换互动，不花真钱。摸摸、睡觉和叫醒免费。请由家长先设置密码，再把家庭链接交给孩子。离开时不会扣状态，睡觉能恢复精神，随时可以结束。</p><p class="parent-copy">进度保存在云端。<b>换手机请打开同一个家庭链接</b>，不要重新领养。两台手机一起玩时会同步，网络中断会暂停修改。请收藏家庭链接，丢失后不能凭名字找回。</p><button class="primary" id="parentsDone">知道了，回到小窝</button>');$('parentsDone').onclick=closeDialog;
+  openDialog('<div class="dialog-icon">🌱</div><h2 id="dialogTitle">给爸爸妈妈</h2><p class="parent-copy">适合约 <b>5～7 岁</b>孩子独立点按，也可以陪低龄孩子一起体验。找颜色提供观察练习，照顾宠物提供表达关心的机会，数星星和配对也可以慢慢尝试，不是能力测评。</p><p class="parent-copy">没有广告、付费、签到或死亡惩罚。完成现实中的任务后，由家长输入密码发积分；孩子用积分兑换互动，不花真钱。摸摸、睡觉和叫醒免费。请由家长先在这台设备上设置密码，再交给孩子玩。离开时不会扣状态，睡觉能恢复精神，随时可以结束。</p><p class="parent-copy">进度保存在<b>这台设备的当前浏览器</b>，别人打开链接会有自己的小窝。页面加载后，暂时断网也能玩和保存；重新打开页面仍需要能访问游戏网址。请使用普通浏览模式，不要清除网站数据。换手机可在“备份 / 换手机”中复制存档码，再手动导入；之后不会自动同步。</p><button class="primary" id="parentsDone">知道了，回到小窝</button>');$('parentsDone').onclick=closeDialog;
 };
-$('sync').onclick=()=>reconnect(true);$('reconnectNow').onclick=()=>reconnect(true);
+$('sync').onclick=()=>refreshLocal(true);$('reconnectNow').onclick=()=>refreshLocal(true);
 $('openFamily').onclick=joinDialog;$('openFamilyFooter').onclick=joinDialog;
 setInterval(()=>{if(!document.hidden)render()},60000);
-// Automatic sync never opens dialogs or replaces pet dialogue; brief returns are deduplicated.
-function autoSync(){if(document.hidden||!token||busy||syncing||mode||dialog.open||Date.now()-lastNetworkAttempt<15000)return;reconnect(false)}
-document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.hidden)audio?.suspend().catch(()=>{});else autoSync();});
-window.addEventListener('online',autoSync);window.addEventListener('offline',()=>{ready=false;render();status('离线了 · 连网后接着玩',true)});
-window.addEventListener('hashchange',()=>{location.reload()});
-setInterval(autoSync,15000);
+document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('paused',document.hidden);if(document.hidden)audio?.suspend().catch(()=>{});else if(!busy)refreshLocal()});
+window.addEventListener('storage',event=>{if((event.key===SAVE_KEY||event.key===null)&&!busy)refreshLocal()});
 setInterval(()=>{if(pet.sleeping&&!document.hidden){$('energyValue').textContent=energyNow(pet);$('energyBar').value=energyNow(pet)}},1000);
 $('pet').querySelector('img').addEventListener('error',e=>{e.target.hidden=true;$('pet').querySelector('.pet-fallback').hidden=false});
-async function init(){
+function init(){
   try{sound=localStorage.getItem(SOUND_KEY)==='true'}catch{}updateSound();
-  const match=location.hash.match(/^#home=([a-f0-9]{48})$/);
-  if(match)token=match[1];else if(!location.hash){try{const stored=localStorage.getItem(TOKEN_KEY);if(tokenPattern.test(stored||''))token=stored}catch{}}
-  render();
-  if(token){remember();await refresh(true);if(!ready){say('小窝还没连上，请点上方“重新连接”。');status('小窝未连接 · 点这里重连',true);}}
-  else{status('领养后自动保存到云端');welcome(location.hash?'家庭链接不完整，请让家人重新发一次。':'给团团一个家，开始一起玩吧。')}
+  const legacyLink=location.hash.startsWith('#home=');
+  if(legacyLink)history.replaceState(null,'',location.pathname+location.search);
+  refreshLocal();
+  if(!revision&&!saveError)welcome(legacyLink?'现在每台设备各自养小狐狸，旧版云端进度不会自动迁入。可以在这里领养新的团团，或导入本机版备份。':undefined);
 }
 init();
 
-// Optional browser-agent status tool; no family key is exposed.
+// Read-only browser-agent tool never exposes the parent PIN verifier.
 if(document.modelContext?.registerTool){
  const lifecycle=new AbortController();
- try{Promise.resolve(document.modelContext.registerTool({name:'get_pet_status',title:'查看宠物状态',description:'Read this family pet’s currently displayed state and cloud connection, without changing it.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:()=>({pet:{...pet,energy:energyNow(pet)},revision,connected:ready,saving:busy})},{signal:lifecycle.signal})).catch(()=>{})}catch{}
+ try{Promise.resolve(document.modelContext.registerTool({name:'get_pet_status',title:'查看宠物状态',description:'Read this browser’s local pet progress, without changing it.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:()=>({pet:{...pet,energy:energyNow(pet)},revision,localSaveReady:ready,saving:busy})},{signal:lifecycle.signal})).catch(()=>{})}catch{}
  window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
 }
 
@@ -270,9 +261,9 @@ function parentDialog(){
   };
 }
 $('parentPoints').onclick=parentDialog;
-async function completeActivity(){if(!pet.activity)return false;return act('finish',pet.activity.id)}
+async function completeActivity(){if(!pet.activity||pet.activity.id!==activeActivityId){showReward('当前互动已经变化，请回到小窝再点继续。');return false}return act('finish',activeActivityId)}
 const activityStarts={};
-$('resumeActivity').onclick=()=>{if(pet.activity&&ready&&!busy&&!pet.sleeping)activityStarts[pet.activity.action]()};
+$('resumeActivity').onclick=()=>{if(pet.activity&&ready&&!busy&&!pet.sleeping){activeActivityId=pet.activity.id;activityStarts[pet.activity.action]()}};
 // Charge once before starting paid activities. Completion and canceled rounds never mint points.
 for(const action of ['bath','play','count','memory','dance']){
   const begin=$(action).onclick;activityStarts[action]=begin;
@@ -282,6 +273,6 @@ for(const action of ['bath','play','count','memory','dance']){
     if(pet.points<rule.cost){openDialog('<div class="dialog-icon">⭐</div><h2 id="dialogTitle">再攒一点积分吧</h2><p>这个互动需要 '+rule.cost+' 分，现在有 '+pet.points+' 分。完成任务后，请爸爸妈妈确认发分。</p><p>也可以先摸摸团团，或让它休息一会。</p><button class="primary" id="notEnoughDone">知道啦</button>');$('notEnoughDone').onclick=closeDialog;return}
     openDialog('<div class="dialog-icon">'+rule.icon+'</div><h2 id="dialogTitle">用 '+rule.cost+' 分兑换'+rule.label+'？</h2><p>现在有 '+pet.points+' 分，兑换后剩 '+(pet.points-rule.cost)+' 分。<br>确认后开始互动；退出后可点“继续”接着玩，不再扣分。</p><button class="primary" id="confirmExchange">确认兑换，开始玩</button><button class="rest-button" id="cancelExchange">先不兑换</button>');
     $('cancelExchange').onclick=closeDialog;
-    $('confirmExchange').onclick=async()=>{if(busy||!ready)return;$('confirmExchange').disabled=true;if(await act(action)){closeDialog();begin()}else closeDialog()};
+    $('confirmExchange').onclick=async()=>{if(busy||!ready)return;$('confirmExchange').disabled=true;if(await act(action)){activeActivityId=pet.activity.id;closeDialog();begin()}else closeDialog()};
   };
 }

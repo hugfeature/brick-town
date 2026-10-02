@@ -23,3 +23,9 @@
 html,body{overscroll-behavior-y:none}
 .room-tools{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0}.share-home{border:1px solid #a7d2ca;border-radius:99px;background:#edf9f4;color:#08777c;min-height:44px;padding:8px 13px;font-size:13px;font-weight:700}.share-backup{margin-top:16px;font-size:13px}.share-backup summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.public-share{border-top:1px solid #dce6de;padding-top:18px;text-align:center;font-size:14px}.public-share p{font-size:13px;margin:8px 0}.public-share a{font-size:12px;text-decoration:underline;overflow-wrap:anywhere}.public-share .rest-button{margin:10px auto 0;background:#edf4ee;border-radius:12px;min-height:44px;padding:10px 18px}
 @media(max-width:480px){.share-home{font-size:12px;padding:7px 10px}.room-top{gap:8px}h1{font-size:23px}}
+
+/* Local saves and portable backups, with touch-friendly copy and import fields. */
+.local-save-note{margin:0 22px 14px;color:#56736a;font-size:12px;line-height:1.6}
+.rename-form textarea,.public-share input{width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:12px;border:1px solid #a9c5bb;border-radius:12px;background:#fff;color:#24453c;resize:vertical;overflow-wrap:anywhere}
+.rename-form textarea{min-height:88px}.import-check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.6}.rename-form .import-check input{width:20px;height:20px;flex:none;margin:3px 0}
+@media(max-width:480px){.local-save-note{margin:0 12px 12px}.room-tools .share-home{white-space:nowrap}.public-share input{font-size:12px}}

@@ -2,7 +2,8 @@
   "name": "brick-town",
   "private": true,
   "scripts": {
-    "test": "node tests/timing.cjs && node tests/startup.cjs && node tests/game.cjs && node tests/picnic.cjs && node tests/viewport.cjs && node tests/racer.cjs"
+    "test": "node tests/timing.cjs && node tests/startup.cjs && node tests/game.cjs && node tests/picnic.cjs && node tests/viewport.cjs && node tests/racer.cjs",
+    "test:pet": "node tests/pet-local.mjs && node tests/pet-local-ui.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

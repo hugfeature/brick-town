@@ -48,7 +48,7 @@ export function changePet(previous,action,value,now=Date.now()) {
 }
 
 function record(p,label,amount,now){p.ledger.unshift({label,amount,at:now});p.ledger=p.ledger.slice(0,12)}
-// Called only after the API has verified the parent's PIN.
+// Called only after the local store has verified the parent's PIN.
 export function grantPoints(previous,value,now=Date.now()){
   const p=normalizePet(previous);let amount,label;
   const today=taskState(p,now);p.tasks={day:today.day,done:[...today.done]};

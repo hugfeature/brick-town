@@ -6,9 +6,9 @@
   <meta name="description" content="认识小狐狸团团：喂食、洗澡、找颜色、数星星、翻牌配对，完成任务攒积分，兑换宠物互动。没有广告、不用登录，适合孩子和家长一起玩的电子宠物。">
   <title>团团的小窝 · 积木小镇</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="pet.css?v=sharing3">
+  <link rel="stylesheet" href="pet.css?v=local1">
   <meta name="referrer" content="no-referrer">
-  <script type="module" src="pet.js?v=sharing3"></script>
+  <script type="module" src="pet.js?v=local1"></script>
 </head>
 <body>
 <main class="app">
@@ -18,12 +18,12 @@
   </header>
   <div class="layout">
     <section class="playhouse" aria-label="团团的小窝">
-      <div class="room-top"><div><p class="eyebrow">我的动物朋友</p><h1><span id="petName">团团</span>的小窝 <button id="rename" class="rename" aria-label="给小狐狸改名字">✎</button></h1></div><div class="room-tools"><span id="roomState" class="room-state">☀ 醒着呢</span><button id="shareTop" class="share-home">分享小窝 ↗</button></div></div>
+      <div class="room-top"><div><p class="eyebrow">我的动物朋友</p><h1><span id="petName">团团</span>的小窝 <button id="rename" class="rename" aria-label="给小狐狸改名字">✎</button></h1></div><div class="room-tools"><span id="roomState" class="room-state">☀ 醒着呢</span><button id="shareTop" class="share-home">备份 / 换手机</button></div></div>
       <section id="connectionPanel" class="connection-panel" aria-labelledby="connectionTitle">
-        <div class="connection-copy"><strong id="connectionTitle">正在连接小窝…</strong><p id="connectionDetail">正在读取云端存档，请稍等。</p></div>
-        <div class="connection-actions"><button id="reconnectNow" class="connection-primary">重新连接</button><button id="openFamily" class="connection-secondary">打开家庭链接</button><a id="directHome" class="connection-secondary" hidden referrerpolicy="no-referrer">打开独立页面</a></div>
-        <small id="connectionError" hidden></small>
+        <div class="connection-copy"><strong id="connectionTitle">正在读取本机存档…</strong><p id="connectionDetail">每台设备各自养一只小狐狸，进度自动保存在当前浏览器。</p></div>
+        <div class="connection-actions"><button id="reconnectNow" class="connection-primary">领养小狐狸</button><button id="openFamily" class="connection-secondary">导入存档</button></div>
       </section>
+      <p class="local-save-note">💾 本机自动存档 · 不同手机各自玩</p>
       <div class="needs" aria-label="宠物状态">
         <div class="need food-need"><div><span>🍎 饱饱</span><strong id="foodValue">75</strong></div><progress id="foodBar" max="100" value="75" aria-label="饱饱"></progress></div>
         <div class="need clean-need"><div><span>🫧 干净</span><strong id="cleanValue">70</strong></div><progress id="cleanBar" max="100" value="70" aria-label="干净"></progress></div>
@@ -72,7 +72,7 @@
       <a href="https://hugfeature.github.io/brick-town/" class="racer-link"><span>🏎️</span><span><b>去小镇兜兜风</b><small>也可以找小熊送苹果</small></span><span>↗</span></a>
     </aside>
   </div>
-  <footer><button id="sync" class="sync-status" aria-label="重新连接云端"><span id="saveStatus" role="status">正在连接小窝…</span></button><div><button id="share" class="text-button">分享小窝 / 换手机</button><button id="openFamilyFooter" class="text-button">打开家庭链接</button><button id="parents" class="text-button">给爸爸妈妈</button></div></footer>
+  <footer><button id="sync" class="sync-status" aria-label="重新读取本机存档"><span id="saveStatus" role="status">正在读取本机存档…</span></button><div><button id="share" class="text-button">备份 / 换手机</button><button id="openFamilyFooter" class="text-button">导入存档</button><button id="parents" class="text-button">给爸爸妈妈</button></div></footer>
 </main>
 <div id="rewardToast" class="reward-toast" role="status" aria-live="polite" hidden></div>
 <dialog id="dialog" aria-labelledby="dialogTitle"><button id="closeDialog" class="close-dialog" aria-label="关闭弹窗">×</button><div id="dialogContent"></div></dialog>

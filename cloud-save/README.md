@@ -1,3 +1,7 @@
+# 历史云端实现（当前前端已停用）
+
+2026-10-02 起，GitHub Pages 宠物页面使用本机存档，不再连接这里的云端接口。以下内容仅记录旧版实现。旧数据未删除，也不会自动迁入本机版。
+
 # 团团云端存档
 
 网页在 `pet/`，云端接口为 `/api/pet`。GitHub Pages 只托管前端，数据库不会写入 GitHub 仓库。生产云端由 ChatGPT Sites 的 Cloudflare Worker + D1 提供，`worker.mjs` 为可迁移的核心接口。
